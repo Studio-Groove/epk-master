@@ -1,303 +1,206 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EPK Master — Studio Groove Engine</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Client v2 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        obsidian: '#030508',
-                        cardDark: '#0A0E17',
-                        neonCyan: '#00F5FF',
-                        deepGold: '#D4AF37',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #030508; color: #F8FAFC; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .glass { background: rgba(10, 14, 23, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        @media print {
-            body * { visibility: visible; }
-            .no-print { display: none !important; }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EPK Master</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:#0b0b10;color:#e8e8ef}
+.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#14141c;border-bottom:1px solid #26263a;position:sticky;top:0;z-index:10}
+.top b{font-weight:800;letter-spacing:.5px;margin-right:auto}
+.top input{width:210px}
+.app{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 54px)}
+#ed{padding:16px;border-right:1px solid #26263a;overflow:auto;max-height:calc(100vh - 54px);position:sticky;top:54px}
+#pv{overflow:auto}
+h3{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#9a9ab5;margin:22px 0 8px}
+label{display:block;font-size:12px;color:#b5b5cc;margin:10px 0 4px}
+input,textarea,select{width:100%;background:#0f0f16;border:1px solid #2c2c44;color:#fff;border-radius:8px;padding:9px 10px;font:inherit;font-size:14px}
+textarea{min-height:76px;resize:vertical}
+input[type=color]{padding:2px;height:38px}
+button,.bt{background:#7c5cff;color:#fff;border:0;border-radius:8px;padding:9px 14px;font:600 13px Inter;cursor:pointer}
+button.g{background:#26263a}
+#thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+#thumbs div{position:relative;aspect-ratio:1;background-size:cover;background-position:center;border-radius:6px}
+#thumbs span{position:absolute;top:2px;right:2px;background:#000a;border-radius:50%;width:20px;height:20px;text-align:center;line-height:20px;cursor:pointer;font-size:13px}
+small{color:#7d7d98;font-size:11px}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;border-radius:8px;font-weight:600;font-size:13px;opacity:0;transition:.3s;pointer-events:none}
+#toast.on{opacity:1}
+@media(max-width:900px){.app{grid-template-columns:1fr}#ed{position:static;max-height:none;border:0}}
+@media print{.top,#ed,#toast{display:none!important}.app{display:block}body{background:#fff}}
+</style>
 </head>
-<body class="min-h-screen selection:bg-neonCyan selection:text-obsidian flex flex-col items-center">
+<body>
+<div class="top" id="top">
+  <b>EPK&nbsp;MASTER</b>
+  <span id="who"><input id="em" type="email" placeholder="seu e-mail para entrar"> <button class="g" id="login">Entrar</button></span>
+  <button id="save">Salvar</button>
+  <button class="g" id="pub">Link público</button>
+  <button class="g" id="exp">Baixar HTML</button>
+  <button class="g" id="prt">PDF</button>
+</div>
+<div class="app">
+<div id="ed">
+  <h3>Identidade</h3>
+  <label>Nome artístico</label><input data-k="name" placeholder="Ex.: DJ Pythagoras">
+  <label>Gênero</label><input data-k="genre" placeholder="Ex.: Tech House">
+  <label>Cidade / País</label><input data-k="city" placeholder="São Paulo, Brasil">
+  <label>Frase de impacto</label><input data-k="tagline" placeholder="Uma linha que resume você">
+  <label>Cor de destaque</label><input type="color" data-k="accent">
+  <label>Tema</label><select data-k="theme"><option value="dark">Escuro</option><option value="light">Claro</option></select>
+  <h3>Imagens</h3>
+  <label>Foto de capa (horizontal, alta resolução)</label><input type="file" id="cov" accept="image/*">
+  <label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple>
+  <div id="thumbs"></div>
+  <h3>Biografia</h3>
+  <textarea data-k="bio" style="min-height:140px" placeholder="Conte sua história em 2-4 parágrafos. Linha em branco separa parágrafos."></textarea>
+  <h3>Música</h3>
+  <label>Faixas / vídeos <small>(uma por linha: Título | link)</small></label>
+  <textarea data-k="tracks" placeholder="Minha faixa | https://open.spotify.com/track/..."></textarea>
+  <small>Spotify e YouTube viram player. Outros links viram botão.</small>
+  <h3>Destaques e imprensa</h3>
+  <label>Conquistas <small>(uma por linha)</small></label><textarea data-k="highlights" placeholder="Tocou no festival X&#10;+100 mil streams"></textarea>
+  <label>Citações <small>(Citação | Fonte)</small></label><textarea data-k="quotes" placeholder="Som único e envolvente | Revista Y"></textarea>
+  <h3>Downloads</h3>
+  <label>Arquivos <small>(Nome | link do Drive/Dropbox)</small></label><textarea data-k="files" placeholder="Rider técnico | https://...&#10;Logo (ZIP) | https://..."></textarea>
+  <h3>Contato</h3>
+  <label>E-mail de booking</label><input data-k="email" type="email">
+  <label>Telefone / WhatsApp</label><input data-k="phone">
+  <label>Redes <small>(Nome | link)</small></label><textarea data-k="socials" placeholder="Instagram | https://instagram.com/..."></textarea>
+  <label>Slug do link público</label><input data-k="slug" placeholder="meu-nome">
+  <p><small>Sem login, tudo fica salvo só neste navegador. Com login (Supabase), o kit fica na nuvem e ganha link público.</small></p>
+</div>
+<div id="pv"></div>
+</div>
+<div id="toast"></div>
+<script>
+/* ====== CONFIGURAÇÃO SUPABASE (cole os seus dados; use SOMENTE a chave anon/public) ====== */
+const SUPABASE_URL = "";
+const SUPABASE_ANON_KEY = "";
+/* ======================================================================================== */
 
-    <!-- Top Navbar -->
-    <header class="w-full max-w-5xl px-6 py-6 flex justify-between items-center z-40 no-print">
-        <div class="flex items-center space-x-3">
-            <div class="h-2 w-2 rounded-full bg-neonCyan shadow-[0_0_10px_#00F5FF]"></div>
-            <span class="text-xs font-black tracking-widest uppercase text-slate-400 font-mono">EPK MASTER <span class="text-slate-600">//</span> STUDIO GROOVE</span>
-        </div>
-        <div class="flex items-center space-x-3">
-            <div class="flex bg-cardDark border border-slate-800 rounded-lg p-1 text-xs font-mono">
-                <button onclick="switchLang('pt')" id="lang-pt" class="px-3 py-1 rounded bg-neonCyan text-obsidian font-bold transition">PT</button>
-                <button onclick="switchLang('en')" id="lang-en" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">EN</button>
-            </div>
-            <button onclick="toggleAdminPanel()" class="bg-neonCyan text-obsidian px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#00d4df] transition shadow-[0_0_15px_rgba(0,245,255,0.25)]">
-                ⚙️ Configurar / Editar
-            </button>
-            <button onclick="window.print()" class="bg-cardDark hover:bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition">
-                PDF
-            </button>
-        </div>
-    </header>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safe=u=>/^https?:\/\//i.test(u||'')?u:'';
+const lines=t=>(t||'').split('\n').map(s=>s.trim()).filter(Boolean);
+const pair=l=>{const i=l.indexOf('|');return i<0?[l,'']:[l.slice(0,i).trim(),l.slice(i+1).trim()]};
+const slugify=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2600)};
 
-    <!-- Main EPK Canvas -->
-    <main class="w-full max-w-4xl px-4 py-8 space-y-10">
-        
-        <!-- Hero Section com Foto de Fundo Dinâmica -->
-        <div id="hero-banner" class="relative w-full rounded-3xl overflow-hidden glass p-8 lg:p-14 shadow-2xl border border-white/10 bg-cover bg-center transition-all duration-500">
-            <!-- Overlay escuro para leitura perfeita -->
-            <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/80 to-transparent pointer-events-none"></div>
-            <div class="absolute -top-32 -right-32 w-80 h-80 bg-neonCyan/10 rounded-full blur-3xl pointer-events-none"></div>
+const sb=(SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase)?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+let user=null;
+const DEF={name:'',genre:'',city:'',tagline:'',bio:'',accent:'#7c5cff',theme:'dark',cover:'',photos:[],tracks:'',highlights:'',quotes:'',files:'',email:'',phone:'',socials:'',slug:''};
+let kit={...DEF,...JSON.parse(localStorage.getItem('epk')||'{}')};
 
-            <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                <div>
-                    <span id="view-genre" class="inline-block px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase mb-4 bg-neonCyan/10 text-neonCyan border border-neonCyan/30 font-mono">
-                        TECH HOUSE / DEEP TECH
-                    </span>
-                    <h1 id="view-name" class="text-4xl lg:text-7xl font-black tracking-tighter text-white uppercase">SEU NOME ARTÍSTICO</h1>
-                    <p id="view-location" class="text-sm text-slate-400 mt-2 uppercase tracking-widest font-mono">CIDADE — PAÍS</p>
-                </div>
-                <div class="text-left md:text-right">
-                    <span class="text-[10px] text-slate-500 uppercase tracking-widest block font-mono">OFFICIAL PRESS KIT</span>
-                    <span class="text-xs font-mono text-neonCyan font-bold">VERIFIED ARTIST</span>
-                </div>
-            </div>
-        </div>
+const KIT_CSS=`
+.kit{--a:#7c5cff;--bg:#0b0b10;--fg:#ececf5;--mu:#9a9ab5;--cd:#14141c;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;line-height:1.7}
+.kit.light{--bg:#fafafc;--fg:#14141c;--mu:#666680;--cd:#fff}
+.kit *{box-sizing:border-box}
+.kit .hero{min-height:78vh;display:flex;flex-direction:column;justify-content:flex-end;padding:8vw 7vw 6vw;background:linear-gradient(180deg,#0000 20%,var(--bg) 98%),var(--img,linear-gradient(135deg,var(--a),#111)) center/cover}
+.kit .chip{display:inline-block;align-self:flex-start;border:1px solid var(--a);color:var(--a);padding:4px 14px;border-radius:99px;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-bottom:16px;background:#0006}
+.kit h1{font:900 clamp(44px,9vw,120px)/.95 'Playfair Display',serif;margin:0 0 14px;letter-spacing:-1px}
+.kit .tag{font-size:clamp(16px,2vw,22px);color:var(--mu);max-width:720px;margin:0}
+.kit section{padding:56px 7vw;max-width:1200px;margin:auto}
+.kit h2{font:700 13px Inter;letter-spacing:3px;text-transform:uppercase;color:var(--a);margin:0 0 24px;display:flex;align-items:center;gap:12px}
+.kit h2:after{content:"";flex:1;height:1px;background:var(--mu);opacity:.3}
+.kit .bio p{font-size:18px;max-width:780px;margin:0 0 16px}
+.kit .gal{columns:3 220px;gap:12px}
+.kit .gal img{width:100%;margin-bottom:12px;border-radius:10px;display:block}
+.kit .trk{margin-bottom:18px}.kit iframe{width:100%;border:0;border-radius:12px}
+.kit .trk b{display:block;margin-bottom:8px}
+.kit .btn{display:inline-block;background:var(--a);color:#fff;text-decoration:none;padding:11px 20px;border-radius:99px;font-weight:600;font-size:14px;margin:0 8px 8px 0}
+.kit .btn.o{background:none;border:1px solid var(--a);color:var(--a)}
+.kit ul{padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.kit li{background:var(--cd);padding:16px 18px;border-radius:12px;border-left:3px solid var(--a)}
+.kit blockquote{margin:0 0 20px;font:italic 700 clamp(20px,3vw,32px)/1.35 'Playfair Display',serif}
+.kit blockquote cite{display:block;font:600 13px Inter;color:var(--mu);margin-top:8px;font-style:normal}
+.kit footer{text-align:center;padding:64px 7vw;background:var(--cd)}
+.kit footer h3{font:900 clamp(28px,5vw,52px) 'Playfair Display',serif;margin:0 0 20px}
+@media print{.kit .hero{min-height:auto}.kit section{break-inside:avoid}}`;
 
-        <!-- Grid Principal -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <div class="lg:col-span-8 space-y-8">
-                <!-- Biografia -->
-                <div class="glass rounded-3xl p-8 border border-white/10">
-                    <h2 class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4 font-mono flex items-center space-x-2">
-                        <span class="w-1.5 h-1.5 bg-neonCyan rounded-full"></span>
-                        <span id="txt-biotitle">BIOGRAPHY</span>
-                    </h2>
-                    <p id="view-bio" class="text-slate-300 text-base lg:text-lg leading-relaxed font-normal">
-                        Adicione sua biografia profissional aqui. Conte sua trajetória, principais lançamentos em gravadoras e o impacto do seu som nas pistas.
-                    </p>
-                </div>
+function embed(u){u=safe(u);if(!u)return'';
+ let m=u.match(/open\.spotify\.com\/(track|album|playlist|artist)\/(\w+)/);
+ if(m)return `<iframe loading="lazy" src="https://open.spotify.com/embed/${m[1]}/${m[2]}" height="152" allow="encrypted-media"></iframe>`;
+ m=u.match(/(?:youtu\.be\/|v=)([\w-]{11})/);
+ if(m)return `<iframe loading="lazy" src="https://www.youtube.com/embed/${m[1]}" height="340" allowfullscreen></iframe>`;
+ return `<a class="btn" href="${esc(u)}" target="_blank" rel="noopener">Ouvir ↗</a>`}
 
-                <!-- Player de Mídia -->
-                <div class="glass rounded-3xl p-6 border border-white/10 flex items-center justify-between">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 rounded-2xl bg-neonCyan text-obsidian flex items-center justify-center font-black text-lg shadow-[0_0_15px_rgba(0,245,255,0.4)]">▶</div>
-                        <div>
-                            <span class="text-sm font-bold text-white block">Promo Mix / Latest Release</span>
-                            <span class="text-xs text-slate-400 font-mono">Exclusive for A&Rs & Promoters</span>
-                        </div>
-                    </div>
-                    <span class="text-xs font-mono text-neonCyan font-bold tracking-wider">SOUNDCLOUD</span>
-                </div>
-            </div>
+function renderKit(k){
+ const cover=safe(k.cover)||/^data:image\//.test(k.cover||'')?k.cover:'';
+ const tr=lines(k.tracks).map(pair), hi=lines(k.highlights), qu=lines(k.quotes).map(pair),
+       fi=lines(k.files).map(pair), so=lines(k.socials).map(pair);
+ const imgs=(k.photos||[]).filter(p=>safe(p)||/^data:image\//.test(p));
+ const sec=(t,b)=>b?`<section><h2>${t}</h2>${b}</section>`:'';
+ return `<div class="kit ${k.theme==='light'?'light':''}" style="--a:${/^#[0-9a-f]{6}$/i.test(k.accent)?k.accent:'#7c5cff'}">
+ <div class="hero" ${cover?`style="--img:url('${cover}')"`:''}>
+  ${k.genre?`<span class="chip">${esc(k.genre)}${k.city?' · '+esc(k.city):''}</span>`:''}
+  <h1>${esc(k.name)||'Seu Nome Artístico'}</h1>
+  ${k.tagline?`<p class="tag">${esc(k.tagline)}</p>`:''}
+ </div>
+ ${sec('Biografia',k.bio?`<div class="bio">${k.bio.split(/\n\s*\n/).map(p=>`<p>${esc(p.trim())}</p>`).join('')}</div>`:'')}
+ ${sec('Música',tr.length?tr.map(([t,u])=>`<div class="trk">${t?`<b>${esc(t)}</b>`:''}${embed(u)}</div>`).join(''):'')}
+ ${sec('Destaques',hi.length?`<ul>${hi.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>`:'')}
+ ${sec('Imprensa',qu.length?qu.map(([q,s])=>`<blockquote>“${esc(q)}”${s?`<cite>— ${esc(s)}</cite>`:''}</blockquote>`).join(''):'')}
+ ${sec('Fotos',imgs.length?`<div class="gal">${imgs.map(p=>`<a href="${esc(p)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(p)}" alt="${esc(k.name)}"></a>`).join('')}</div>`:'')}
+ ${sec('Downloads',fi.length?fi.map(([n,u])=>safe(u)?`<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">⬇ ${esc(n)}</a>`:'').join(''):'')}
+ ${(k.email||k.phone||so.length)?`<footer><h3>Booking &amp; Contato</h3>
+  ${k.email?`<a class="btn" href="mailto:${esc(k.email)}">${esc(k.email)}</a>`:''}
+  ${k.phone?`<a class="btn o" href="tel:${esc(k.phone.replace(/[^\d+]/g,''))}">${esc(k.phone)}</a>`:''}
+  <div style="margin-top:14px">${so.map(([n,u])=>safe(u)?`<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`:'').join('')}</div></footer>`:''}
+ </div>`}
 
-            <div class="lg:col-span-4 space-y-6">
-                <!-- Links Oficiais -->
-                <div class="glass rounded-3xl p-6 border border-white/10 space-y-3">
-                    <h3 class="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-4 font-mono">Official Links</h3>
-                    
-                    <a id="view-spotify" href="#" target="_blank" class="w-full bg-obsidian/80 hover:bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-200 transition flex items-center justify-between">
-                        <span>Spotify Profile</span> <span class="text-neonCyan">↗</span>
-                    </a>
-                    <a id="view-soundcloud" href="#" target="_blank" class="w-full bg-obsidian/80 hover:bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-200 transition flex items-center justify-between">
-                        <span>SoundCloud Sets</span> <span class="text-neonCyan">↗</span>
-                    </a>
-                    <a id="view-instagram" href="#" target="_blank" class="w-full bg-obsidian/80 hover:bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-200 transition flex items-center justify-between">
-                        <span>Instagram</span> <span class="text-neonCyan">↗</span>
-                    </a>
-                </div>
+const draw=()=>{$('#pv').innerHTML=renderKit(kit)};
+function thumbs(){$('#thumbs').innerHTML=(kit.photos||[]).map((p,i)=>`<div style="background-image:url('${esc(p)}')"><span data-i="${i}">×</span></div>`).join('')}
+function fill(){$$('[data-k]').forEach(e=>e.value=kit[e.dataset.k]??'');thumbs();draw()}
 
-                <!-- Booking -->
-                <div class="glass rounded-3xl p-6 border border-neonCyan/30 bg-gradient-to-b from-cardDark to-neonCyan/5 space-y-4">
-                    <h3 class="text-[10px] uppercase tracking-widest text-neonCyan font-bold font-mono">Direct Booking</h3>
-                    <p id="view-email" class="text-sm font-bold text-white font-mono break-all">booking@seuemail.com</p>
-                    <a id="view-email-btn" href="#" class="block w-full bg-neonCyan text-obsidian text-center py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#00d4df] transition shadow-[0_0_15px_rgba(0,245,255,0.2)]">
-                        Enviar E-mail
-                    </a>
-                </div>
-            </div>
+/* imagens: reduz para 1600px JPEG; sobe ao Supabase Storage se logado, senão guarda local */
+const shrink=(f,max=1600)=>new Promise(r=>{const i=new Image();i.onload=()=>{const s=Math.min(1,max/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);c.toBlob(r,'image/jpeg',.85);URL.revokeObjectURL(i.src)};i.src=URL.createObjectURL(f)});
+async function store(f){const b=await shrink(f);
+ if(sb&&user){const p=`${user.id}/${Date.now()}${Math.random().toString(36).slice(2,6)}.jpg`;
+  const {error}=await sb.storage.from('epk-media').upload(p,b,{contentType:'image/jpeg'});
+  if(error){toast('Upload: '+error.message);return null}
+  return sb.storage.from('epk-media').getPublicUrl(p).data.publicUrl}
+ return new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)})}
 
-        </div>
+$('#cov').onchange=async e=>{if(!e.target.files[0])return;toast('Enviando…');const u=await store(e.target.files[0]);if(u){kit.cover=u;draw();toast('Capa pronta')}};
+$('#pho').onchange=async e=>{toast('Enviando…');for(const f of e.target.files){const u=await store(f);if(u)kit.photos.push(u)}thumbs();draw();toast('Fotos prontas')};
+$('#thumbs').onclick=e=>{const i=e.target.dataset.i;if(i!==undefined){kit.photos.splice(+i,1);thumbs();draw()}};
+$$('[data-k]').forEach(e=>e.oninput=()=>{kit[e.dataset.k]=e.value;draw();localStorage.setItem('epk',JSON.stringify(kit))});
 
-        <footer class="text-center py-8 border-t border-slate-800/80 text-xs text-slate-500 font-mono">
-            Powered by <strong class="text-slate-300">EPK Master</strong> &bull; Studio Groove Ecosystem
-        </footer>
+/* salvar */
+async function save(){
+ localStorage.setItem('epk',JSON.stringify(kit));
+ if(!sb)return toast('Salvo neste navegador (Supabase não configurado)');
+ if(!user)return toast('Salvo localmente. Entre com e-mail para salvar na nuvem');
+ kit.slug=slugify(kit.slug||kit.name)||('kit-'+user.id.slice(0,6));$('[data-k=slug]').value=kit.slug;
+ const {error}=await sb.from('epks').upsert({user_id:user.id,slug:kit.slug,data:kit,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+ toast(error?(error.code==='23505'?'Esse slug já existe, escolha outro':error.message):'Salvo na nuvem ✓')}
+$('#save').onclick=save;
+$('#pub').onclick=async()=>{await save();if(!sb||!user||!kit.slug)return;const l=location.origin+location.pathname+'#/k/'+kit.slug;try{await navigator.clipboard.writeText(l)}catch(_){}prompt('Link público (copiado):',l)};
+$('#prt').onclick=()=>print();
+$('#exp').onclick=()=>{const h=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(kit.name)} — Press Kit</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"><style>${KIT_CSS}body{margin:0}</style></head><body>${renderKit(kit)}</body></html>`;
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download=(slugify(kit.name)||'press-kit')+'.html';a.click()};
 
-    </main>
+/* login por link mágico */
+$('#login').onclick=async()=>{if(!sb)return toast('Configure o Supabase no topo do código');const email=$('#em').value.trim();if(!email)return toast('Digite seu e-mail');
+ const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});toast(error?error.message:'Link enviado! Confira seu e-mail')};
+async function onUser(u){user=u;
+ $('#who').innerHTML=u?`<small>${esc(u.email)}</small> <button class="g" id="out">Sair</button>`:$('#who').innerHTML;
+ if(u){$('#out').onclick=async()=>{await sb.auth.signOut();location.reload()};
+  const {data}=await sb.from('epks').select('data').eq('user_id',u.id).maybeSingle();
+  if(data?.data){kit={...DEF,...data.data};fill()}}}
 
-    <!-- Painel Lateral de Configuração (Abre automaticamente se for novo) -->
-    <div id="admin-panel" class="fixed inset-y-0 right-0 w-full max-w-md bg-cardDark border-l border-slate-800 p-8 shadow-2xl transform transition-transform duration-300 z-50 overflow-y-auto no-print">
-        <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-800">
-            <div>
-                <h2 class="text-base font-black text-white uppercase tracking-wider">Painel do Artista</h2>
-                <p class="text-[11px] text-slate-400">Preencha os dados do seu Press Kit</p>
-            </div>
-            <button onclick="toggleAdminPanel()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
-        </div>
-
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Identificador Único (Slug na URL)</label>
-                <input type="text" id="input-slug" placeholder="ex: meunome" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-neonCyan">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Nome Artístico</label>
-                <input type="text" id="input-name" placeholder="Ex: DJ JOÃO SILVA" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Gênero</label>
-                    <input type="text" id="input-genre" placeholder="Ex: Tech House" value="TECH HOUSE / DEEP TECH" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Localização</label>
-                    <input type="text" id="input-location" placeholder="Ex: São Paulo, Brasil" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
-                </div>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Link da Foto de Capa (URL da Imagem)</label>
-                <input type="text" id="input-photo" placeholder="Cole o link de uma foto HD (ex: Unsplash ou Imgur)" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Biografia</label>
-                <textarea id="input-bio" rows="4" placeholder="Escreva sua história na música eletrônica..." oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan resize-none"></textarea>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Link Spotify</label>
-                <input type="text" id="input-spotify" placeholder="https://spotify.com/artista" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Link SoundCloud</label>
-                <input type="text" id="input-soundcloud" placeholder="https://soundcloud.com/artista" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Link Instagram</label>
-                <input type="text" id="input-instagram" placeholder="https://instagram.com/artista" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">E-mail de Booking</label>
-                <input type="text" id="input-email" placeholder="booking@seuemail.com" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
-            </div>
-
-            <div class="pt-4 border-t border-slate-800 flex space-x-3">
-                <button onclick="saveToCloud()" class="flex-1 bg-neonCyan text-obsidian py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#00d4df] transition shadow-lg">
-                    Salvar na Nuvem ☁️
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Script de Gestão -->
-    <script>
-        const SUPABASE_URL = 'https://kwxutgeqexqqrwhgvebh.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_OIFV3bbUJCHosiu1vomf3Q_Jc0X7XGQ';
-        const { createClient } = supabase;
-        const db = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        function toggleAdminPanel() {
-            const panel = document.getElementById('admin-panel');
-            panel.classList.toggle('translate-x-full');
-        }
-
-        function syncData() {
-            const name = document.getElementById('input-name').value;
-            const genre = document.getElementById('input-genre').value;
-            const location = document.getElementById('input-location').value;
-            const bio = document.getElementById('input-bio').value;
-            const photo = document.getElementById('input-photo').value;
-            const spotify = document.getElementById('input-spotify').value;
-            const soundcloud = document.getElementById('input-soundcloud').value;
-            const instagram = document.getElementById('input-instagram').value;
-            const email = document.getElementById('input-email').value;
-
-            document.getElementById('view-name').innerText = name || 'SEU NOME ARTÍSTICO';
-            document.getElementById('view-genre').innerText = genre || 'TECH HOUSE / DEEP TECH';
-            document.getElementById('view-location').innerText = location || 'CIDADE — PAÍS';
-            document.getElementById('view-bio').innerText = bio || 'Adicione sua biografia profissional aqui. Conte sua trajetória, principais lançamentos em gravadoras e o impacto do seu som nas pistas.';
-            
-            if (photo) {
-                document.getElementById('hero-banner').style.backgroundImage = `linear-gradient(to top, #030508, rgba(3,5,8,0.75)), url('${photo}')`;
-            }
-
-            document.getElementById('view-spotify').href = spotify || '#';
-            document.getElementById('view-soundcloud').href = soundcloud || '#';
-            document.getElementById('view-instagram').href = instagram || '#';
-            
-            if(email) {
-                document.getElementById('view-email').innerText = email;
-                document.getElementById('view-email-btn').href = 'mailto:' + email;
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', async () => {
-            const params = new URLSearchParams(window.location.search);
-            const artistSlug = params.get('artist');
-            
-            if (artistSlug) {
-                // Se tem artista na URL, esconde o painel e busca do banco
-                const { data } = await db.from('epks').select('*').eq('slug', artistSlug).single();
-                if (data) {
-                    document.getElementById('input-slug').value = data.slug;
-                    document.getElementById('input-name').value = data.artist_name || '';
-                    document.getElementById('input-genre').value = data.genre || '';
-                    document.getElementById('input-location').value = data.location || '';
-                    document.getElementById('input-bio').value = data.bio || '';
-                    document.getElementById('input-photo').value = data.photo_url || '';
-                    document.getElementById('input-spotify').value = data.spotify_link || '';
-                    document.getElementById('input-soundcloud').value = data.soundcloud_link || '';
-                    document.getElementById('input-instagram').value = data.instagram_link || '';
-                    document.getElementById('input-email').value = data.booking_email || '';
-                    syncData();
-                    toggleAdminPanel(); // Fecha o painel para exibir apenas o EPK limpo
-                }
-            } else {
-                // Se for novo acesso sem ?artist=, abre o painel automaticamente para orientar o usuário
-                document.getElementById('admin-panel').classList.remove('translate-x-full');
-            }
-        });
-
-        async function saveToCloud() {
-            const slug = document.getElementById('input-slug').value.trim();
-            const artist_name = document.getElementById('input-name').value;
-            const genre = document.getElementById('input-genre').value;
-            const location = document.getElementById('input-location').value;
-            const bio = document.getElementById('input-bio').value;
-            const photo_url = document.getElementById('input-photo').value;
-            const spotify_link = document.getElementById('input-spotify').value;
-            const soundcloud_link = document.getElementById('input-soundcloud').value;
-            const instagram_link = document.getElementById('input-instagram').value;
-            const booking_email = document.getElementById('input-email').value;
-
-            if (!slug) { alert('Por favor, defina um identificador (slug) único para a URL.'); return; }
-
-            const { error } = await db.from('epks').upsert({
-                slug, artist_name, genre, location, bio, photo_url, spotify_link, soundcloud_link, instagram_link, booking_email
-            }, { onConflict: 'slug' });
-
-            if (error) {
-                alert('Erro ao salvar: ' + error.message);
-            } else {
-                alert(`Press kit salvo com sucesso!\nSeu link exclusivo:\n${window.location.origin}${window.location.pathname}?artist=${slug}`);
-                toggleAdminPanel();
-            }
-        }
-    </script>
+/* boot */
+(async()=>{
+ const m=location.hash.match(/^#\/k\/([\w-]+)/);
+ if(m&&sb){const {data}=await sb.from('epks').select('data').eq('slug',m[1]).maybeSingle();
+  document.body.innerHTML='<style>'+KIT_CSS+'body{margin:0}</style>'+(data?renderKit(data.data)+'<p style="text-align:center;padding:20px;font:12px Inter;color:#888">Criado com EPK Master</p>':'<p style="padding:40px;font-family:Inter">Press kit não encontrado.</p>');return}
+ const st=document.createElement('style');st.textContent=KIT_CSS;document.head.appendChild(st);
+ fill();
+ if(sb){const {data}=await sb.auth.getSession();onUser(data.session?.user||null);sb.auth.onAuthStateChange((_,s)=>{if((s?.user?.id||null)!==(user?.id||null))onUser(s?.user||null)})}
+})();
+</script>
 </body>
 </html>
