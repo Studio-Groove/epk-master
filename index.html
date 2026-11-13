@@ -36,7 +36,7 @@ small{color:#7d7d98;font-size:11px}
 <div class="top">
   <b>EPK&nbsp;MASTER</b>
   <span id="st">Iniciando…</span>
-  <span id="who"><input id="em" type="email" placeholder="seu e-mail para entrar"> <button class="g" id="login">Entrar</button></span>
+  <span id="who"><input id="em" type="email" placeholder="seu e-mail"> <input id="pw" type="password" placeholder="senha (se tiver)" style="width:150px"> <button class="g" id="login">Entrar</button></span>
   <button id="save">Salvar</button>
   <button class="g" id="pub">Link público</button>
   <button class="g" id="exp">Baixar HTML</button>
@@ -295,12 +295,16 @@ $('#exp').onclick = () => {
 };
 const doLogin = async () => {
   if (!sb) return toast('Supabase não carregou. Recarregue a página.');
-  const email = $('#em').value.trim(); if (!email) return toast('Digite seu e-mail');
+  const email = $('#em').value.trim(), pw = $('#pw').value; if (!email) return toast('Digite seu e-mail');
+  if (pw) {
+    const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+    return toast(error ? (/invalid login/i.test(error.message) ? 'E-mail ou senha incorretos.' : error.message) : 'Entrando…');
+  }
   const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
-  toast(error ? error.message : 'Link enviado! Confira seu e-mail (e o spam)');
+  toast(error ? (/rate limit/i.test(error.message) ? 'Limite de e-mails do Supabase atingido. Use e-mail + senha, ou espere 1 hora.' : error.message) : 'Link enviado! Confira seu e-mail (e o spam)', 7000);
 };
 $('#login').onclick = doLogin;
-$('#em').onkeydown = e => { if (e.key === 'Enter') doLogin(); };
+$('#em').onkeydown = $('#pw').onkeydown = e => { if (e.key === 'Enter') doLogin(); };
 
 async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(50);
