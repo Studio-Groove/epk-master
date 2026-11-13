@@ -9,20 +9,25 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui,sans-serif;background:#0b0b10;color:#e8e8ef}
 .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#14141c;border-bottom:1px solid #26263a;position:sticky;top:0;z-index:10}
-.top b{font-weight:800;letter-spacing:.5px;margin-right:auto}.top input{width:210px}
+.top b{font-weight:800;letter-spacing:.5px;margin-right:auto}
 .app{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 54px)}
 #ed{padding:16px;border-right:1px solid #26263a;overflow:auto;max-height:calc(100vh - 54px);position:sticky;top:54px}
-h3{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#9a9ab5;margin:22px 0 8px}
-label{display:block;font-size:12px;color:#b5b5cc;margin:10px 0 4px}
-input,textarea,select{width:100%;background:#0f0f16;border:1px solid #2c2c44;color:#fff;border-radius:8px;padding:9px 10px;font:inherit;font-size:14px}
-textarea{min-height:76px;resize:vertical}input[type=color]{padding:2px;height:38px}
-button{background:#7c5cff;color:#fff;border:0;border-radius:8px;padding:9px 14px;font:600 13px Inter;cursor:pointer}button.g{background:#26263a}
+#ed h3{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#9a9ab5;margin:22px 0 8px}
+#ed label{display:block;font-size:12px;color:#b5b5cc;margin:10px 0 4px}
+#ed input,#ed textarea,#ed select,.top input{width:100%;background:#0f0f16;border:1px solid #2c2c44;color:#fff;border-radius:8px;padding:9px 10px;font:inherit;font-size:14px}
+.top input{width:210px}
+#ed textarea{min-height:76px;resize:vertical}#ed input[type=color]{padding:2px;height:38px}
+.top button,#ed button{background:#7c5cff;color:#fff;border:0;border-radius:8px;padding:9px 14px;font:600 13px Inter;cursor:pointer}
+.top button.g{background:#26263a}
 #thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
 #thumbs div{position:relative;aspect-ratio:1;background-size:cover;background-position:center;border-radius:6px}
 #thumbs span{position:absolute;top:2px;right:2px;background:#000a;border-radius:50%;width:20px;height:20px;text-align:center;line-height:20px;cursor:pointer;font-size:13px}
 .lead{background:#14141c;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px}.lead b{color:#a995ff}
 small{color:#7d7d98;font-size:11px}
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;border-radius:8px;font-weight:600;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:99}#toast.on{opacity:1}
+#st{font-size:12px;color:#9a9ab5}
+#upmsg{color:#ff8a8a;font-size:12px;margin-top:6px;white-space:pre-wrap}
+.err{padding:24px;color:#ff7777;white-space:pre-wrap;font:14px/1.6 monospace}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;border-radius:8px;font-weight:600;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:99;max-width:90vw}#toast.on{opacity:1}
 @media(max-width:900px){.app{grid-template-columns:1fr}#ed{position:static;max-height:none;border:0}}
 @media print{.top,#ed,#toast{display:none!important}.app{display:block}body{background:#fff}}
 </style>
@@ -30,6 +35,7 @@ small{color:#7d7d98;font-size:11px}
 <body>
 <div class="top">
   <b>EPK&nbsp;MASTER</b>
+  <span id="st">Iniciando…</span>
   <span id="who"><input id="em" type="email" placeholder="seu e-mail para entrar"> <button class="g" id="login">Entrar</button></span>
   <button id="save">Salvar</button>
   <button class="g" id="pub">Link público</button>
@@ -39,20 +45,142 @@ small{color:#7d7d98;font-size:11px}
 <div class="app"><div id="ed"></div><div id="pv"></div></div>
 <div id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/kit.js"></script>
+<script>
+const EPK = (() => {
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safe = u => /^https?:\/\//i.test(u || '') ? u : '';
+const img = u => safe(u) || (/^data:image\//.test(u || '') ? u : '');
+const cssUrl = u => "url('" + String(u).replace(/['"()\\\s<>]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')) + "')";
+const lines = t => (t || '').split('\n').map(s => s.trim()).filter(Boolean);
+const list = t => (t || '').split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+const pair = l => { const i = l.indexOf('|'); return i < 0 ? [l, ''] : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; };
+const slugify = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const p2 = n => String(n).padStart(2, '0');
+const isoDate = s => {
+  s = (s || '').trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return m[1] + '-' + p2(m[2]) + '-' + p2(m[3]);
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  return m ? m[3] + '-' + p2(m[2]) + '-' + p2(m[1]) : '';
+};
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
+
+const T = {
+  en: { bio: 'Biography', music: 'Music', dates: 'Upcoming dates', hi: 'Highlights', rel: 'Released on', play: 'Played at', sup: 'Supported by', press: 'Press', photos: 'Photos', dl: 'Downloads', contact: 'Booking & Contact', book: 'Booking request', vip: 'Join my VIP list', name: 'Name', email: 'E-mail', wa: 'WhatsApp', date: 'Event date', city: 'City / Venue', msg: 'Message', send: 'Send', ok: 'Thank you! We will be in touch.', err: 'Something went wrong. Please try again.', listen: 'Listen ↗' },
+  pt: { bio: 'Biografia', music: 'Música', dates: 'Próximas datas', hi: 'Destaques', rel: 'Lançado em', play: 'Tocou em', sup: 'Apoiado por', press: 'Imprensa', photos: 'Fotos', dl: 'Downloads', contact: 'Booking e Contato', book: 'Pedido de booking', vip: 'Entre na minha lista VIP', name: 'Nome', email: 'E-mail', wa: 'WhatsApp', date: 'Data do evento', city: 'Cidade / Local', msg: 'Mensagem', send: 'Enviar', ok: 'Obrigado! Entraremos em contato.', err: 'Algo deu errado. Tente novamente.', listen: 'Ouvir ↗' }
+};
+
+const KIT_CSS = `
+.kit{--a:#7c5cff;--bg:#0b0b10;--fg:#ececf5;--mu:#9a9ab5;--cd:#14141c;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;line-height:1.7}
+.kit.light{--bg:#fafafc;--fg:#14141c;--mu:#666680;--cd:#fff}
+.kit *{box-sizing:border-box}
+.kit .hero{min-height:78vh;display:flex;flex-direction:column;justify-content:flex-end;padding:8vw 7vw 6vw;background:linear-gradient(180deg,#0000 20%,var(--bg) 98%),var(--img,linear-gradient(135deg,var(--a),#111)) center/cover}
+.kit .chip{display:inline-block;align-self:flex-start;border:1px solid var(--a);color:var(--a);padding:4px 14px;border-radius:99px;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-bottom:16px;background:#0006}
+.kit h1{font:900 clamp(44px,9vw,120px)/.95 'Playfair Display',serif;margin:0 0 14px;letter-spacing:-1px}
+.kit .tag{font-size:clamp(16px,2vw,22px);color:var(--mu);max-width:720px;margin:0}
+.kit section{padding:52px 7vw;max-width:1200px;margin:auto}
+.kit h2{font:700 13px Inter;letter-spacing:3px;text-transform:uppercase;color:var(--a);margin:0 0 24px;display:flex;align-items:center;gap:12px}
+.kit h2:after{content:"";flex:1;height:1px;background:var(--mu);opacity:.3}
+.kit .lang{margin-bottom:16px}.kit .lang button{background:none;border:1px solid var(--mu);color:var(--fg);border-radius:99px;padding:3px 12px;margin-right:6px;cursor:pointer;font:600 12px Inter}
+.kit [data-l]{display:none}.kit[data-lang=en] [data-l=en],.kit[data-lang=pt] [data-l=pt]{display:block}
+.kit .bio p{font-size:18px;max-width:780px;margin:0 0 16px}
+.kit .gal{columns:3 220px;gap:12px}.kit .gal img{width:100%;margin-bottom:12px;border-radius:10px;display:block}
+.kit .trk{margin-bottom:18px}.kit iframe{width:100%;border:0;border-radius:12px}.kit .trk b{display:block;margin-bottom:8px}
+.kit .btn{display:inline-block;background:var(--a);color:#fff;text-decoration:none;padding:11px 20px;border-radius:99px;font-weight:600;font-size:14px;margin:0 8px 8px 0;border:0;cursor:pointer;font-family:inherit}
+.kit .btn.o{background:none;border:1px solid var(--a);color:var(--a)}
+.kit .ev{display:grid;grid-template-columns:110px 1fr auto;gap:14px;padding:14px 0;border-bottom:1px solid #8883}
+.kit .ev b{color:var(--a)}.kit .ev span{color:var(--mu)}
+.kit .hl h4{margin:18px 0 8px;font:600 12px Inter;letter-spacing:2px;text-transform:uppercase;color:var(--mu)}
+.kit .hl span{display:inline-block;background:var(--cd);border-radius:99px;padding:5px 14px;margin:0 6px 6px 0;font-size:14px;border:1px solid #8883}
+.kit blockquote{margin:0 0 20px;font:italic 700 clamp(20px,3vw,32px)/1.35 'Playfair Display',serif}
+.kit blockquote cite{display:block;font:600 13px Inter;color:var(--mu);margin-top:8px;font-style:normal}
+.kit footer{text-align:center;padding:64px 7vw;background:var(--cd)}
+.kit footer h3{font:900 clamp(28px,5vw,52px) 'Playfair Display',serif;margin:0 0 20px}
+.kit .forms{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;max-width:900px;margin:36px auto 0;text-align:left}
+.kit form{background:var(--bg);padding:20px;border-radius:14px;border:1px solid #8883}
+.kit form h4{margin:0 0 12px;font:700 15px Inter}
+.kit input,.kit textarea{width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #8885;background:var(--cd);color:var(--fg);font:inherit;font-size:14px}
+@media print{.kit .hero{min-height:auto}.kit section{break-inside:avoid}.kit .forms,.kit .lang{display:none}}`;
+
+function embed(u, t) {
+  u = safe(u); if (!u) return '';
+  let m = u.match(/open\.spotify\.com\/(?:intl-\w+\/)?(track|album|playlist|artist)\/(\w+)/);
+  if (m) return `<iframe loading="lazy" src="https://open.spotify.com/embed/${m[1]}/${m[2]}" height="152" allow="encrypted-media"></iframe>`;
+  m = u.match(/(?:youtu\.be\/|v=)([\w-]{11})/);
+  if (m) return `<iframe loading="lazy" src="https://www.youtube.com/embed/${m[1]}" height="340" allowfullscreen></iframe>`;
+  return `<a class="btn" href="${esc(u)}" target="_blank" rel="noopener">${t.listen}</a>`;
+}
+
+function renderKit(k) {
+  const L = k.lang === 'pt' ? 'pt' : 'en', t = T[L], cover = img(k.cover);
+  const tr = lines(k.tracks).map(pair), qu = lines(k.quotes).map(pair), fi = lines(k.files).map(pair), so = lines(k.socials).map(pair);
+  const td = today();
+  const ev = lines(k.agenda).map(l => l.split('|').map(s => s.trim())).map(a => [isoDate(a[0]), a[1], a[2]]).filter(a => a[0] && a[0] >= td).sort((a, b) => a[0] < b[0] ? -1 : 1);
+  const imgs = (k.photos || []).filter(img);
+  const sec = (h, b) => b ? `<section><h2>${h}</h2>${b}</section>` : '';
+  const hl = [['rel', 'rel'], ['play', 'play'], ['sup', 'sup']].map(([f, key]) => { const a = list(k[f]); return a.length ? `<h4>${t[key]}</h4>${a.map(x => `<span>${esc(x)}</span>`).join('')}` : ''; }).join('');
+  const bl = k['bio_' + L] ? L : (k.bio_en ? 'en' : 'pt'), both = k.bio_en && k.bio_pt;
+  const bio = ['en', 'pt'].map(l => k['bio_' + l] ? `<div class="bio" data-l="${l}">${k['bio_' + l].split(/\n\s*\n/).map(p => `<p>${esc(p.trim())}</p>`).join('')}</div>` : '').join('');
+  const wa = (k.phone || '').replace(/\D/g, '');
+  const field = (n, ph, type = 'text', req = '') => `<input name="${n}" type="${type}" placeholder="${ph}" ${req}>`;
+  const hp = '<input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">';
+  return `<div class="kit ${k.theme === 'light' ? 'light' : ''}" data-lang="${bl}" style="--a:${/^#[0-9a-f]{6}$/i.test(k.accent) ? k.accent : '#7c5cff'}">
+<div class="hero" ${cover ? `style="--img:${cssUrl(cover)}"` : ''}>
+${k.genre ? `<span class="chip">${esc(k.genre)}${k.city ? ' · ' + esc(k.city) : ''}</span>` : ''}
+<h1>${esc(k.name) || 'Artist Name'}</h1>${k.tagline ? `<p class="tag">${esc(k.tagline)}</p>` : ''}</div>
+${sec(t.bio, bio ? `${both ? `<div class="lang"><button onclick="this.closest('.kit').dataset.lang='en'">EN</button><button onclick="this.closest('.kit').dataset.lang='pt'">PT</button></div>` : ''}${bio}` : '')}
+${sec(t.hi, hl ? `<div class="hl">${hl}</div>` : '')}
+${sec(t.dates, ev.length ? ev.map(a => `<div class="ev"><b>${esc(a[0].split('-').reverse().join('/'))}</b><div>${esc(a[1] || '')}</div><span>${esc(a[2] || '')}</span></div>`).join('') : '')}
+${sec(t.music, tr.length ? tr.map(([n, u]) => `<div class="trk">${n ? `<b>${esc(n)}</b>` : ''}${embed(u, t)}</div>`).join('') : '')}
+${sec(t.press, qu.length ? qu.map(([q, s]) => `<blockquote>“${esc(q)}”${s ? `<cite>— ${esc(s)}</cite>` : ''}</blockquote>`).join('') : '')}
+${sec(t.photos, imgs.length ? `<div class="gal">${imgs.map(p => `<a href="${esc(p)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(p)}" alt="${esc(k.name)}"></a>`).join('')}</div>` : '')}
+${sec(t.dl, fi.length ? fi.map(([n, u]) => safe(u) ? `<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">⬇ ${esc(n)}</a>` : '').join('') : '')}
+<footer><h3>${t.contact}</h3>
+${k.email ? `<a class="btn" href="mailto:${esc(k.email)}">${esc(k.email)}</a>` : ''}
+${wa ? `<a class="btn o" href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
+<div>${so.map(([n, u]) => safe(u) ? `<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>` : '').join('')}</div>
+<div class="forms">
+<form data-kind="booking" onsubmit="return false"><h4>${t.book}</h4>${hp}${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}${field('event_date', t.date, 'date')}${field('city', t.city)}<textarea name="message" rows="3" placeholder="${t.msg}"></textarea><button class="btn">${t.send}</button></form>
+<form data-kind="vip" onsubmit="return false"><h4>${t.vip}</h4>${hp}${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}<button class="btn">${t.send}</button></form>
+</div></footer></div>`;
+}
+
+function renderPage(k, o) {
+  const t = T[k.lang === 'pt' ? 'pt' : 'en'], title = esc(k.name) + ' — Press Kit';
+  const d = esc((k.tagline || k.bio_en || k.bio_pt || '').replace(/\s+/g, ' ').slice(0, 160)), cv = safe(k.cover);
+  const cfg = JSON.stringify({ s: o.slug || k.slug || '', u: o.supabaseUrl || '', k: o.supabaseKey || '', ok: t.ok, err: t.err }).replace(/</g, '\\u003c');
+  return `<!DOCTYPE html><html lang="${k.lang === 'pt' ? 'pt-BR' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="description" content="${d}"><meta property="og:title" content="${title}"><meta property="og:description" content="${d}"><meta property="og:type" content="website">${o.url ? `<meta property="og:url" content="${esc(o.url)}">` : ''}${cv ? `<meta property="og:image" content="${esc(cv)}">` : ''}<meta name="twitter:card" content="summary_large_image"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"><style>${KIT_CSS}body{margin:0}</style></head><body>${renderKit(k)}<script>
+const C=${cfg};
+document.querySelectorAll('form[data-kind]').forEach(f=>f.onsubmit=async e=>{e.preventDefault();const b=Object.fromEntries(new FormData(f));if(b.website){f.innerHTML='<p>'+C.ok+'</p>';return}delete b.website;b.slug=C.s;b.kind=f.dataset.kind;if(!b.event_date)delete b.event_date;
+try{const r=await fetch(C.u+'/rest/v1/leads',{method:'POST',headers:{apikey:C.k,Authorization:'Bearer '+C.k,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(b)});f.innerHTML='<p>'+(r.ok?C.ok:C.err)+'</p>'}catch(_){f.innerHTML='<p>'+C.err+'</p>'}});
+<\/script></body></html>`;
+}
+
+return { renderKit, renderPage, KIT_CSS, slugify, cssUrl, esc };
+})();
+</script>
 <script>
 const SUPABASE_URL = "https://kwxutgeqexqqrwhgvebh.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3eHV0Z2VxZXhxcXJ3aGd2ZWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1ODYyMTQsImV4cCI6MjExMDE2MjIxNH0.a7zCa4MKeS4lXpjdbte2PbfwN1Yl5v4T8Qql9u5Oq7o";
 const RESERVED = ['api', 'kit', 'index', 'app', 'admin'];
+const MAX_PHOTOS = 20;
 
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2800); };
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let user = null;
+const esc = EPK.esc;
+const toast = (m, ms) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), ms || Math.min(9000, 2800 + m.length * 35)); };
+const setStatus = t => { $('#st').textContent = t; };
+window.addEventListener('error', e => toast('Erro: ' + e.message));
+window.addEventListener('unhandledrejection', e => toast('Erro: ' + ((e.reason && e.reason.message) || e.reason)));
+
+let sb = null, user = null, ready = false, cloudSlug = '', saveTimer = null, chain = Promise.resolve();
+try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { toast('Supabase não carregou: o editor funciona, mas sem login e nuvem.'); }
+
+const st = document.createElement('style'); st.textContent = EPK.KIT_CSS; document.head.appendChild(st);
 
 const DEF = { name: '', genre: '', city: '', tagline: '', accent: '#7c5cff', theme: 'dark', lang: 'en', cover: '', photos: [], bio_en: '', bio_pt: '', tracks: '', agenda: '', rel: '', play: '', sup: '', quotes: '', files: '', email: '', phone: '', socials: '', slug: '' };
-let kit = { ...DEF, ...JSON.parse(localStorage.getItem('epk2') || '{}') };
+const norm = o => { const k = { ...DEF, ...(o || {}) }; if (!Array.isArray(k.photos)) k.photos = []; k.photos = k.photos.filter(p => typeof p === 'string' && /^https?:\/\//.test(p)); if (typeof k.cover === 'string' && !/^https?:\/\//.test(k.cover)) k.cover = ''; return k; };
+let kit = DEF;
+try { kit = norm(JSON.parse(localStorage.getItem('epk2') || '{}')); } catch (e) { kit = norm({}); }
 
 const FIELDS = [
  ['Identidade'], ['Nome artístico', 'name'], ['Gênero', 'genre'], ['Cidade / País', 'city'], ['Frase de impacto', 'tagline'],
@@ -60,7 +188,7 @@ const FIELDS = [
  ['Idioma principal do kit', 'lang', 'select', [['en', 'English'], ['pt', 'Português']]],
  ['Imagens'], ['__files', '__files'],
  ['Biografia'], ['Bio em inglês (linha em branco separa parágrafos)', 'bio_en', 'area'], ['Bio em português', 'bio_pt', 'area'],
- ['Música e agenda'], ['Faixas e vídeos (Título | link Spotify/YouTube/SoundCloud)', 'tracks', 'area'], ['Próximas datas (AAAA-MM-DD | Evento | Cidade)', 'agenda', 'area'],
+ ['Música e agenda'], ['Faixas e vídeos (Título | link Spotify/YouTube/SoundCloud)', 'tracks', 'area'], ['Próximas datas (DD/MM/AAAA | Evento | Cidade)', 'agenda', 'area'],
  ['Destaques'], ['Lançou em (selos, um por linha ou separados por vírgula)', 'rel', 'area'], ['Tocou em', 'play', 'area'], ['Apoiado por', 'sup', 'area'],
  ['Citações de imprensa (Citação | Fonte)', 'quotes', 'area'],
  ['Contato'], ['E-mail de booking', 'email', 'email'], ['WhatsApp (com DDI, ex.: 5511999999999)', 'phone'], ['Redes (Nome | link)', 'socials', 'area'],
@@ -69,79 +197,137 @@ const FIELDS = [
 ];
 $('#ed').innerHTML = FIELDS.map(([l, k, t, o]) => {
   if (!k) return `<h3>${l}</h3>`;
-  if (k === '__files') return `<label>Foto de capa (alta resolução)</label><input type="file" id="cov" accept="image/*"><label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple><div id="thumbs"></div><small>Entre com seu e-mail antes de enviar fotos, para que fiquem na nuvem.</small>`;
+  if (k === '__files') return `<label>Foto de capa (alta resolução)</label><input type="file" id="cov" accept="image/*"><label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple><div id="thumbs"></div><div id="upmsg"></div><small>Para enviar fotos, entre primeiro com seu e-mail. Use JPG, PNG ou WebP (fotos HEIC do iPhone: converta para JPG).</small>`;
   const c = t === 'area' ? `<textarea data-k="${k}"></textarea>` : t === 'select' ? `<select data-k="${k}">${o.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>` : `<input data-k="${k}" type="${t || 'text'}">`;
   return `<label>${l}</label>${c}`;
 }).join('') + `<h3>Pedidos recebidos</h3><div id="leads"><small>Entre para ver pedidos de booking e a lista VIP.</small></div>`;
 
-const draw = () => { $('#pv').innerHTML = EPK.renderKit(kit); };
-const local = () => localStorage.setItem('epk2', JSON.stringify(kit));
-function thumbs() { $('#thumbs').innerHTML = (kit.photos || []).map((p, i) => `<div style="background-image:url('${esc(p)}')"><span data-i="${i}">×</span></div>`).join(''); }
+const draw = () => {
+  try { $('#pv').innerHTML = EPK.renderKit(kit); }
+  catch (e) { console.error(e); $('#pv').innerHTML = '<div class="err">Erro ao montar o preview: ' + esc(e.message) + '</div>'; }
+};
+let drawTimer; const drawSoon = () => { clearTimeout(drawTimer); drawTimer = setTimeout(draw, 200); };
+const local = () => { try { localStorage.setItem('epk2', JSON.stringify(kit)); } catch (e) { toast('Não foi possível salvar neste navegador.'); } };
+function thumbs() { $('#thumbs').innerHTML = (kit.photos || []).map((p, i) => `<div style="background-image:${EPK.cssUrl(p)}"><span data-i="${i}">×</span></div>`).join(''); }
 function fill() { $$('[data-k]').forEach(e => e.value = kit[e.dataset.k] ?? ''); thumbs(); draw(); }
 
-const shrink = (f, max = 1600) => new Promise(r => { const i = new Image(); i.onload = () => { const s = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = i.width * s; c.height = i.height * s; c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); c.toBlob(r, 'image/jpeg', .85); URL.revokeObjectURL(i.src); }; i.src = URL.createObjectURL(f); });
-async function store(f) {
-  const b = await shrink(f);
-  if (user) {
-    const p = `${user.id}/${Date.now()}${Math.random().toString(36).slice(2, 6)}.jpg`;
-    const { error } = await sb.storage.from('epk-media').upload(p, b, { contentType: 'image/jpeg' });
-    if (error) { toast('Upload: ' + error.message); return null; }
-    return sb.storage.from('epk-media').getPublicUrl(p).data.publicUrl;
+/* ---------- salvar na nuvem ---------- */
+function queueSave() {
+  if (!user || !ready) return;
+  setStatus('Alterações pendentes…');
+  clearTimeout(saveTimer); saveTimer = setTimeout(() => push(false), 1500);
+}
+const push = explicit => (chain = chain.then(() => doPush(explicit)).catch(e => { toast('Nuvem: ' + e.message); return false; }));
+async function doPush(explicit) {
+  if (!user || !sb || !ready) return false;
+  clearTimeout(saveTimer);
+  let slug = cloudSlug || ('kit-' + user.id.slice(0, 8));
+  if (explicit) {
+    slug = EPK.slugify(kit.slug || kit.name);
+    if (slug.length < 3) { toast('Escolha um slug com pelo menos 3 letras (ou preencha o nome artístico).'); return false; }
+    if (RESERVED.includes(slug)) { toast('Esse slug é reservado, escolha outro.'); return false; }
   }
-  return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+  setStatus('Salvando…');
+  const { error } = await sb.from('epks').upsert({ user_id: user.id, slug, data: { ...kit, slug: explicit ? slug : kit.slug }, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  if (error) { setStatus('Erro ao salvar na nuvem'); toast(error.code === '23505' ? 'Esse slug já está em uso, escolha outro.' : 'Nuvem: ' + error.message); return false; }
+  cloudSlug = slug;
+  if (explicit) { kit.slug = slug; $('[data-k=slug]').value = slug; local(); }
+  setStatus('Salvo na nuvem ✓'); return true;
 }
-$('#cov').onchange = async e => { if (!e.target.files[0]) return; toast('Enviando…'); const u = await store(e.target.files[0]); if (u) { kit.cover = u; draw(); local(); toast('Capa pronta'); } };
-$('#pho').onchange = async e => { toast('Enviando…'); for (const f of e.target.files) { const u = await store(f); if (u) kit.photos.push(u); } thumbs(); draw(); local(); toast('Fotos prontas'); };
-$('#thumbs').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { kit.photos.splice(+i, 1); thumbs(); draw(); local(); } };
-$$('[data-k]').forEach(e => e.oninput = () => { kit[e.dataset.k] = e.value; draw(); local(); });
 
-async function save() {
-  local();
-  if (!user) { toast('Salvo só neste navegador. Entre com e-mail para salvar na nuvem.'); return false; }
-  kit.slug = EPK.slugify(kit.slug || kit.name) || ('kit-' + user.id.slice(0, 6));
-  if (RESERVED.includes(kit.slug)) { toast('Esse slug é reservado, escolha outro'); return false; }
-  $('[data-k=slug]').value = kit.slug;
-  const { error } = await sb.from('epks').upsert({ user_id: user.id, slug: kit.slug, data: kit, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
-  if (error) { toast(error.code === '23505' ? 'Esse slug já existe, escolha outro' : error.message); return false; }
-  toast('Salvo na nuvem ✓'); return true;
+/* ---------- upload ---------- */
+const shrink = (f, max = 1600) => new Promise((res, rej) => {
+  const i = new Image(), u = URL.createObjectURL(f);
+  i.onerror = () => { URL.revokeObjectURL(u); rej(new Error('formato não suportado pelo navegador (HEIC? converta para JPG)')); };
+  i.onload = () => {
+    const s = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(i.width * s)); c.height = Math.max(1, Math.round(i.height * s));
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(i, 0, 0, c.width, c.height);
+    c.toBlob(b => { URL.revokeObjectURL(u); b ? res(b) : rej(new Error('não foi possível converter a imagem')); }, 'image/jpeg', .85);
+  };
+  i.src = u;
+});
+const why = m => /bucket not found/i.test(m) ? 'o bucket epk-media não existe (rode o SQL no Supabase)' : /row-level security|unauthorized|jwt|permission/i.test(m) ? 'sem permissão (saia, entre de novo e confira a policy "upload dono")' : m;
+async function upload(f) {
+  if (!user || !sb) throw new Error('entre com seu e-mail antes de enviar fotos');
+  if (!ready) throw new Error('aguarde o kit carregar da nuvem e tente de novo');
+  if (f.size > 30 * 1024 * 1024) throw new Error('arquivo maior que 30 MB');
+  const b = await shrink(f);
+  const p = `${user.id}/${Date.now()}${Math.random().toString(36).slice(2, 7)}.jpg`;
+  let r = await sb.storage.from('epk-media').upload(p, b, { contentType: 'image/jpeg', cacheControl: '31536000' });
+  if (r.error) { await new Promise(z => setTimeout(z, 900)); r = await sb.storage.from('epk-media').upload(p, b, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: true }); }
+  if (r.error) throw new Error(why(r.error.message || String(r.error)));
+  return sb.storage.from('epk-media').getPublicUrl(p).data.publicUrl;
 }
-$('#save').onclick = save;
+async function addFiles(files, cover) {
+  const arr = [...files]; if (!arr.length) return;
+  $('#upmsg').textContent = '';
+  const fails = []; let ok = 0;
+  for (let i = 0; i < arr.length; i++) {
+    if (!cover && kit.photos.length >= MAX_PHOTOS) { fails.push(arr[i].name + ': limite de ' + MAX_PHOTOS + ' fotos'); continue; }
+    toast(`Enviando ${i + 1} de ${arr.length}…`, 60000);
+    try { const u = await upload(arr[i]); if (cover) kit.cover = u; else kit.photos.push(u); ok++; thumbs(); draw(); local(); }
+    catch (e) { fails.push(arr[i].name + ': ' + e.message); }
+  }
+  if (ok) push(false);
+  if (fails.length) $('#upmsg').textContent = 'Não enviadas:\n' + fails.join('\n');
+  toast(fails.length ? `${ok} enviada(s), ${fails.length} com erro (veja abaixo dos campos de foto)` : `${ok} enviada(s) ✓`);
+}
+$('#cov').onchange = async e => { const fs = [...e.target.files]; e.target.value = ''; await addFiles(fs.slice(0, 1), true); };
+$('#pho').onchange = async e => { const fs = [...e.target.files]; e.target.value = ''; await addFiles(fs, false); };
+$('#thumbs').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { kit.photos.splice(+i, 1); thumbs(); draw(); local(); queueSave(); } };
+$$('[data-k]').forEach(e => { e.oninput = () => { kit[e.dataset.k] = e.value; drawSoon(); local(); queueSave(); }; e.onchange = () => { kit[e.dataset.k] = e.value; draw(); local(); queueSave(); }; });
+
+/* ---------- botões ---------- */
+$('#save').onclick = async () => { local(); if (!user) return toast('Salvo só neste navegador. Entre com e-mail para salvar na nuvem.'); if (await push(true)) toast('Salvo na nuvem ✓'); };
 $('#pub').onclick = async () => {
-  if (!(await save())) return;
-  const l = location.origin + '/' + kit.slug;
+  if (!user) return toast('Entre com seu e-mail para gerar o link público.');
+  if (!(await push(true))) return;
+  const l = location.origin + '/' + cloudSlug;
   try { await navigator.clipboard.writeText(l); } catch (_) {}
   prompt('Link público (copiado):', l);
 };
-$('#prt').onclick = () => print();
+$('#prt').onclick = () => { clearTimeout(drawTimer); draw(); print(); };
 $('#exp').onclick = () => {
-  const h = EPK.renderPage(kit, { slug: kit.slug, supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY });
+  const h = EPK.renderPage(kit, { slug: cloudSlug || EPK.slugify(kit.slug || kit.name), supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY });
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([h], { type: 'text/html' }));
   a.download = (EPK.slugify(kit.name) || 'press-kit') + '.html'; a.click();
 };
-
-$('#login').onclick = async () => {
+const doLogin = async () => {
+  if (!sb) return toast('Supabase não carregou. Recarregue a página.');
   const email = $('#em').value.trim(); if (!email) return toast('Digite seu e-mail');
   const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
-  toast(error ? error.message : 'Link enviado! Confira seu e-mail');
+  toast(error ? error.message : 'Link enviado! Confira seu e-mail (e o spam)');
 };
+$('#login').onclick = doLogin;
+$('#em').onkeydown = e => { if (e.key === 'Enter') doLogin(); };
+
 async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(50);
   if (error) return;
   $('#leads').innerHTML = data.length ? data.map(l => `<div class="lead"><b>${l.kind === 'booking' ? 'BOOKING' : 'VIP'}</b> · ${esc(l.name)} · <a style="color:#a995ff" href="mailto:${esc(l.email)}">${esc(l.email)}</a>${l.whatsapp ? ' · ' + esc(l.whatsapp) : ''}${l.event_date ? '<br>📅 ' + esc(l.event_date) : ''}${l.city ? ' · ' + esc(l.city) : ''}${l.message ? '<br>' + esc(l.message) : ''}<br><small>${new Date(l.created_at).toLocaleString('pt-BR')}</small></div>`).join('') : '<small>Nenhum pedido ainda.</small>';
 }
 async function onUser(u) {
-  user = u;
-  if (!u) return;
+  user = u; ready = false;
+  if (!u) { setStatus('Sem login: salvando só neste navegador'); return; }
   $('#who').innerHTML = `<small>${esc(u.email)}</small> <button class="g" id="out">Sair</button>`;
   $('#out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
-  const { data } = await sb.from('epks').select('data').eq('user_id', u.id).maybeSingle();
-  if (data?.data) { kit = { ...DEF, ...data.data }; fill(); local(); }
+  setStatus('Carregando da nuvem…');
+  const { data, error } = await sb.from('epks').select('slug,data').eq('user_id', u.id).maybeSingle();
+  if (error) { setStatus('Erro ao ler a nuvem'); toast('Nuvem: ' + error.message + ' (as tabelas do SQL existem?)', 9000); return; }
+  if (data) { cloudSlug = data.slug; kit = norm(data.data); fill(); local(); }
+  ready = true;
+  setStatus(data ? 'Kit carregado da nuvem ✓' : 'Logado — digite para criar seu kit');
+  if (!data && kit.name) queueSave();
   loadLeads();
 }
 
 fill();
-sb.auth.getSession().then(({ data }) => onUser(data.session?.user || null));
-sb.auth.onAuthStateChange((_, s) => { if ((s?.user?.id || null) !== (user?.id || null)) onUser(s?.user || null); });
+setStatus('Sem login: salvando só neste navegador');
+if (sb) {
+  sb.auth.getSession().then(({ data }) => onUser(data.session?.user || null));
+  sb.auth.onAuthStateChange((_, s) => { if ((s?.user?.id || null) !== (user?.id || null)) onUser(s?.user || null); });
+}
 </script>
 </body>
 </html>
