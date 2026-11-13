@@ -28,15 +28,30 @@ small{color:#7d7d98;font-size:11px}
 #upmsg{color:#ff8a8a;font-size:12px;margin-top:6px;white-space:pre-wrap}
 .err{padding:24px;color:#ff7777;white-space:pre-wrap;font:14px/1.6 monospace}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;border-radius:8px;font-weight:600;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:99;max-width:90vw}#toast.on{opacity:1}
-@media(max-width:900px){.app{grid-template-columns:1fr}#ed{position:static;max-height:none;border:0}}
-@media print{.top,#ed,#toast{display:none!important}.app{display:block}body{background:#fff}}
+#auth{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#auth.on{display:flex}
+#auth .box{background:#14141c;border:1px solid #2c2c44;border-radius:14px;padding:22px;width:100%;max-width:380px}
+#auth h2{margin:0 0 6px;font-size:18px}
+#auth p{margin:0 0 14px;font-size:12px;color:#9a9ab5}
+#auth input{width:100%;margin-bottom:8px;background:#0f0f16;border:1px solid #2c2c44;color:#fff;border-radius:8px;padding:10px;font:inherit;font-size:14px}
+#auth button{width:100%;margin-bottom:8px;background:#7c5cff;color:#fff;border:0;border-radius:8px;padding:10px;font:600 14px Inter;cursor:pointer}
+#auth button.g{background:#26263a}
+#auth .or{text-align:center;color:#7d7d98;font-size:12px;margin:4px 0 10px}
+#auth .row{display:flex;gap:8px}#auth .row button{flex:1}
+#auth a{color:#a995ff;font-size:12px;cursor:pointer}
+#amsg{display:block;color:#ffb36b;font-size:12px;margin:6px 0 10px;white-space:pre-wrap;min-height:16px}
+#tg{display:none}
+@media(max-width:900px){.app{grid-template-columns:1fr}#ed{position:static;max-height:none;border:0}
+#tg{display:block;position:fixed;bottom:14px;right:14px;z-index:20;background:#7c5cff;color:#fff;border:0;border-radius:99px;padding:12px 18px;font:700 14px Inter;box-shadow:0 4px 18px #0008}
+body.showpv #ed{display:none}body:not(.showpv) #pv{display:none}}
+@media print{.top,#ed,#toast,#tg,#auth{display:none!important}#pv{display:block!important}.app{display:block}body{background:#fff}}
 </style>
 </head>
 <body>
 <div class="top">
   <b>EPK&nbsp;MASTER</b>
   <span id="st">Iniciando…</span>
-  <span id="who"><input id="em" type="email" placeholder="seu e-mail"> <input id="pw" type="password" placeholder="senha (se tiver)" style="width:150px"> <button class="g" id="login">Entrar</button></span>
+  <span id="who"><button id="open">Entrar / Criar conta</button></span>
   <button id="save">Salvar</button>
   <button class="g" id="pub">Link público</button>
   <button class="g" id="exp">Baixar HTML</button>
@@ -44,6 +59,19 @@ small{color:#7d7d98;font-size:11px}
 </div>
 <div class="app"><div id="ed"></div><div id="pv"></div></div>
 <div id="toast"></div>
+<button id="tg">👁 Ver kit</button>
+<div id="auth"><div class="box">
+  <h2>Entrar no EPK Master</h2>
+  <p>Crie sua conta com e-mail e senha ou entre com o Google.</p>
+  <button id="gg">Continuar com Google</button>
+  <div class="or" id="or">ou</div>
+  <input id="em" type="email" placeholder="seu e-mail" autocomplete="email">
+  <input id="pw" type="password" placeholder="senha (mínimo 8 caracteres)" autocomplete="current-password">
+  <div class="row"><button id="login">Entrar</button><button class="g" id="signup">Criar conta</button></div>
+  <a id="forgot">Esqueci a senha</a>
+  <span id="amsg"></span>
+  <button class="g" id="close">Fechar</button>
+</div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const EPK = (() => {
@@ -164,6 +192,7 @@ const SUPABASE_URL = "https://kwxutgeqexqqrwhgvebh.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3eHV0Z2VxZXhxcXJ3aGd2ZWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1ODYyMTQsImV4cCI6MjExMDE2MjIxNH0.a7zCa4MKeS4lXpjdbte2PbfwN1Yl5v4T8Qql9u5Oq7o";
 const RESERVED = ['api', 'kit', 'index', 'app', 'admin'];
 const MAX_PHOTOS = 20;
+const ENABLE_GOOGLE = true; // mude para false se ainda não configurou o Google no Supabase
 
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = EPK.esc;
@@ -197,10 +226,10 @@ const FIELDS = [
 ];
 $('#ed').innerHTML = FIELDS.map(([l, k, t, o]) => {
   if (!k) return `<h3>${l}</h3>`;
-  if (k === '__files') return `<label>Foto de capa (alta resolução)</label><input type="file" id="cov" accept="image/*"><label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple><div id="thumbs"></div><div id="upmsg"></div><small>Para enviar fotos, entre primeiro com seu e-mail. Use JPG, PNG ou WebP (fotos HEIC do iPhone: converta para JPG).</small>`;
+  if (k === '__files') return `<label>Foto de capa (alta resolução)</label><input type="file" id="cov" accept="image/*"><label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple><div id="thumbs"></div><div id="upmsg"></div><small>Para enviar fotos, entre primeiro na sua conta. Use JPG, PNG ou WebP (fotos HEIC do iPhone: converta para JPG).</small>`;
   const c = t === 'area' ? `<textarea data-k="${k}"></textarea>` : t === 'select' ? `<select data-k="${k}">${o.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>` : `<input data-k="${k}" type="${t || 'text'}">`;
   return `<label>${l}</label>${c}`;
-}).join('') + `<h3>Pedidos recebidos</h3><div id="leads"><small>Entre para ver pedidos de booking e a lista VIP.</small></div>`;
+}).join('') + `<div id="linkout" style="margin-top:10px"></div><h3>Pedidos recebidos</h3><div id="leads"><small>Entre para ver pedidos de booking e a lista VIP.</small></div>`;
 
 const draw = () => {
   try { $('#pv').innerHTML = EPK.renderKit(kit); }
@@ -261,6 +290,7 @@ async function upload(f) {
 }
 async function addFiles(files, cover) {
   const arr = [...files]; if (!arr.length) return;
+  if (!user) { openAuth('Entre ou crie sua conta para enviar fotos.'); return; }
   $('#upmsg').textContent = '';
   const fails = []; let ok = 0;
   for (let i = 0; i < arr.length; i++) {
@@ -279,13 +309,14 @@ $('#thumbs').onclick = e => { const i = e.target.dataset.i; if (i !== undefined)
 $$('[data-k]').forEach(e => { e.oninput = () => { kit[e.dataset.k] = e.value; drawSoon(); local(); queueSave(); }; e.onchange = () => { kit[e.dataset.k] = e.value; draw(); local(); queueSave(); }; });
 
 /* ---------- botões ---------- */
-$('#save').onclick = async () => { local(); if (!user) return toast('Salvo só neste navegador. Entre com e-mail para salvar na nuvem.'); if (await push(true)) toast('Salvo na nuvem ✓'); };
+$('#save').onclick = async () => { local(); if (!user) return openAuth('Entre ou crie sua conta para salvar na nuvem. Seu rascunho já está salvo neste navegador.'); if (await push(true)) toast('Salvo na nuvem ✓'); };
 $('#pub').onclick = async () => {
-  if (!user) return toast('Entre com seu e-mail para gerar o link público.');
+  if (!user) return openAuth('Entre ou crie sua conta para gerar o link público.');
   if (!(await push(true))) return;
   const l = location.origin + '/' + cloudSlug;
   try { await navigator.clipboard.writeText(l); } catch (_) {}
-  prompt('Link público (copiado):', l);
+  $('#linkout').innerHTML = `<small>Link público (copiado):</small><br><a style="color:#a995ff;word-break:break-all" href="${esc(l)}" target="_blank" rel="noopener">${esc(l)}</a>`;
+  toast('Link público copiado ✓'); $('#linkout').scrollIntoView({ block: 'center' });
 };
 $('#prt').onclick = () => { clearTimeout(drawTimer); draw(); print(); };
 $('#exp').onclick = () => {
@@ -293,18 +324,50 @@ $('#exp').onclick = () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([h], { type: 'text/html' }));
   a.download = (EPK.slugify(kit.name) || 'press-kit') + '.html'; a.click();
 };
-const doLogin = async () => {
-  if (!sb) return toast('Supabase não carregou. Recarregue a página.');
-  const email = $('#em').value.trim(), pw = $('#pw').value; if (!email) return toast('Digite seu e-mail');
-  if (pw) {
-    const { error } = await sb.auth.signInWithPassword({ email, password: pw });
-    return toast(error ? (/invalid login/i.test(error.message) ? 'E-mail ou senha incorretos.' : error.message) : 'Entrando…');
-  }
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
-  toast(error ? (/rate limit/i.test(error.message) ? 'Limite de e-mails do Supabase atingido. Use e-mail + senha, ou espere 1 hora.' : error.message) : 'Link enviado! Confira seu e-mail (e o spam)', 7000);
+const openAuth = msg => { $('#auth').classList.add('on'); $('#amsg').textContent = msg || ''; setTimeout(() => $('#em').focus(), 50); };
+const closeAuth = () => $('#auth').classList.remove('on');
+const amsg = m => { $('#amsg').textContent = m; };
+if (!ENABLE_GOOGLE) { $('#gg').style.display = 'none'; $('#or').style.display = 'none'; }
+$('#open').onclick = () => openAuth();
+$('#close').onclick = closeAuth;
+$('#auth').onclick = e => { if (e.target.id === 'auth') closeAuth(); };
+const cred = () => {
+  if (!sb) { amsg('Supabase não carregou. Recarregue a página.'); return null; }
+  const email = $('#em').value.trim(), pw = $('#pw').value;
+  if (!/^\S+@\S+\.\S+$/.test(email)) { amsg('Digite um e-mail válido.'); return null; }
+  return { email, pw };
 };
-$('#login').onclick = doLogin;
-$('#em').onkeydown = $('#pw').onkeydown = e => { if (e.key === 'Enter') doLogin(); };
+$('#login').onclick = async () => {
+  const c = cred(); if (!c) return;
+  if (!c.pw) return amsg('Digite sua senha. Ainda não tem conta? Clique em "Criar conta".');
+  amsg('Entrando…');
+  const { error } = await sb.auth.signInWithPassword({ email: c.email, password: c.pw });
+  if (error) amsg(/invalid login/i.test(error.message) ? 'E-mail ou senha incorretos. Se você nunca criou uma conta com senha, clique em "Criar conta" (ou use o Google).' : /not confirmed/i.test(error.message) ? 'E-mail ainda não confirmado. Veja sua caixa de entrada.' : error.message);
+  else { amsg(''); closeAuth(); }
+};
+$('#signup').onclick = async () => {
+  const c = cred(); if (!c) return;
+  if (c.pw.length < 8) return amsg('Escolha uma senha com pelo menos 8 caracteres.');
+  amsg('Criando conta…');
+  const { data, error } = await sb.auth.signUp({ email: c.email, password: c.pw, options: { emailRedirectTo: location.origin } });
+  if (error) return amsg(/already registered/i.test(error.message) ? 'Esse e-mail já tem conta. Clique em "Entrar" (ou "Esqueci a senha").' : /rate limit/i.test(error.message) ? 'Limite de e-mails do Supabase atingido. Desative "Confirm email" no painel do Supabase ou espere 1 hora.' : error.message);
+  if (data.user && data.user.identities && !data.user.identities.length) return amsg('Esse e-mail já tem conta. Clique em "Entrar" (ou "Esqueci a senha").');
+  if (data.session) { amsg(''); closeAuth(); toast('Conta criada ✓'); }
+  else amsg('Conta criada. Enviamos um e-mail de confirmação: abra o link para entrar. (Para dispensar a confirmação, desative "Confirm email" no Supabase.)');
+};
+$('#gg').onclick = async () => {
+  if (!sb) return amsg('Supabase não carregou. Recarregue a página.');
+  amsg('Abrindo o Google…');
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin } });
+  if (error) amsg(error.message);
+};
+$('#forgot').onclick = async () => {
+  const c = cred(); if (!c) return;
+  const { error } = await sb.auth.resetPasswordForEmail(c.email, { redirectTo: location.origin });
+  amsg(error ? (/rate limit/i.test(error.message) ? 'Limite de e-mails do Supabase atingido. Tente em 1 hora ou use o Google.' : error.message) : 'Se esse e-mail tiver conta, enviamos um link para criar a nova senha.');
+};
+$('#em').onkeydown = $('#pw').onkeydown = e => { if (e.key === 'Enter') $('#login').click(); };
+$('#tg').onclick = () => { const on = document.body.classList.toggle('showpv'); $('#tg').textContent = on ? '✏️ Editar' : '👁 Ver kit'; if (on) { clearTimeout(drawTimer); draw(); scrollTo(0, 0); } };
 
 async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(50);
@@ -316,6 +379,7 @@ async function onUser(u) {
   if (!u) { setStatus('Sem login: salvando só neste navegador'); return; }
   $('#who').innerHTML = `<small>${esc(u.email)}</small> <button class="g" id="out">Sair</button>`;
   $('#out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+  closeAuth();
   setStatus('Carregando da nuvem…');
   const { data, error } = await sb.from('epks').select('slug,data').eq('user_id', u.id).maybeSingle();
   if (error) { setStatus('Erro ao ler a nuvem'); toast('Nuvem: ' + error.message + ' (as tabelas do SQL existem?)', 9000); return; }
@@ -328,9 +392,18 @@ async function onUser(u) {
 
 fill();
 setStatus('Sem login: salvando só neste navegador');
+let handled;
+const handle = u => { const id = u ? u.id : null; if (id === handled) return; handled = id; onUser(u); };
 if (sb) {
-  sb.auth.getSession().then(({ data }) => onUser(data.session?.user || null));
-  sb.auth.onAuthStateChange((_, s) => { if ((s?.user?.id || null) !== (user?.id || null)) onUser(s?.user || null); });
+  sb.auth.getSession().then(({ data }) => handle(data.session?.user || null));
+  sb.auth.onAuthStateChange((ev, sess) => {
+    if (ev === 'PASSWORD_RECOVERY') setTimeout(async () => {
+      const np = prompt('Digite a nova senha (mínimo 8 caracteres):');
+      if (np && np.length >= 8) { const { error } = await sb.auth.updateUser({ password: np }); toast(error ? error.message : 'Senha alterada ✓'); }
+      else if (np) toast('Senha curta demais. Peça um novo link em "Esqueci a senha".');
+    }, 0);
+    setTimeout(() => handle(sess?.user || null), 0);
+  });
 }
 </script>
 </body>
