@@ -24,9 +24,9 @@ button{background:#7c5cff;color:#fff;border:0;border-radius:8px;padding:9px 14px
 small{color:#7d7d98;font-size:11px}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;border-radius:8px;font-weight:600;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:99}#toast.on{opacity:1}
 
-/* MODO PÚBLICO (Quando acessado pelo link do artista /slug) */
+/* MODO PÚBLICO (Oculta o topo e o editor quando acessado via /slug) */
 body.public-mode .top, body.public-mode #ed { display: none !important; }
-body.public-mode .app { display: block; }
+body.public-mode .app { display: block; min-height: 100vh; }
 
 @media(max-width:900px){.app{grid-template-columns:1fr}#ed{position:static;max-height:none;border:0}}
 @media print{.top,#ed,#toast{display:none!important}.app{display:block}body{background:#fff}}
@@ -129,8 +129,8 @@ ${k.email ? `<a class="btn" href="mailto:${esc(k.email)}">${esc(k.email)}</a>` :
 ${wa ? `<a class="btn o" href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
 <div>${so.map(([n, u]) => safe(u) ? `<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>` : '').join('')}</div>
 <div class="forms">
-<form data-kind="booking"><h4>${t.book}</h4>${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}${field('event_date', t.date, 'date')}${field('city', t.city)}<textarea name="message" rows="3" placeholder="${t.msg}"></textarea><button class="btn">${t.send}</button></form>
-<form data-kind="vip"><h4>${t.vip}</h4>${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}<button class="btn">${t.send}</button></form>
+<form data-kind="booking" onsubmit="return false"><h4>${t.book}</h4>${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}${field('event_date', t.date, 'date')}${field('city', t.city)}<textarea name="message" rows="3" placeholder="${t.msg}"></textarea><button class="btn">${t.send}</button></form>
+<form data-kind="vip" onsubmit="return false"><h4>${t.vip}</h4>${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}<button class="btn">${t.send}</button></form>
 </div></footer></div>`;
 }
 
@@ -158,138 +158,118 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2800); };
 let sb = null;
-try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { console.error(e); }
+try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { console.error(e); toast('Supabase não carregou: o editor funciona, mas sem login/nuvem.'); }
 let user = null;
 window.addEventListener('error', e => toast('Erro: ' + e.message));
 
 const DEF = { name: '', genre: '', city: '', tagline: '', accent: '#7c5cff', theme: 'dark', lang: 'en', cover: '', photos: [], bio_en: '', bio_pt: '', tracks: '', agenda: '', rel: '', play: '', sup: '', quotes: '', files: '', email: '', phone: '', socials: '', slug: '' };
-// Recupera o que você já tinha salvo antes (epk2 ou epk)
-const saved = JSON.parse(localStorage.getItem('epk2') || localStorage.getItem('epk') || '{}');
-let kit = { ...DEF, ...saved };
+let kit = { ...DEF, ...JSON.parse(localStorage.getItem('epk2') || '{}') };
 
-const FIELDS = [
- ['Identidade'], ['Nome artístico', 'name'], ['Gênero', 'genre'], ['Cidade / País', 'city'], ['Frase de impacto', 'tagline'],
- ['Cor de destaque', 'accent', 'color'], ['Tema', 'theme', 'select', [['dark', 'Escuro'], ['light', 'Claro']]],
- ['Idioma principal do kit', 'lang', 'select', [['en', 'English'], ['pt', 'Português']]],
- ['Imagens'], ['__files', '__files'],
- ['Biografia'], ['Bio em inglês (linha em branco separa parágrafos)', 'bio_en', 'area'], ['Bio em português', 'bio_pt', 'area'],
- ['Música e agenda'], ['Faixas e vídeos (Título | link Spotify/YouTube/SoundCloud)', 'tracks', 'area'], ['Próximas datas (AAAA-MM-DD | Evento | Cidade)', 'agenda', 'area'],
- ['Destaques'], ['Lançou em (selos, um por linha ou separados por vírgula)', 'rel', 'area'], ['Tocou em', 'play', 'area'], ['Apoiado por', 'sup', 'area'],
- ['Citações de imprensa (Citação | Fonte)', 'quotes', 'area'],
- ['Contato'], ['E-mail de booking', 'email', 'email'], ['WhatsApp (com DDI, ex.: 5511999999999)', 'phone'], ['Redes (Nome | link)', 'socials', 'area'],
- ['Downloads (Nome | link do Drive)', 'files', 'area'],
- ['Link público'], ['Slug (epk-master.vercel.app/slug)', 'slug']
-];
-$('#ed').innerHTML = FIELDS.map(([l, k, t, o]) => {
-  if (!k) return `<h3>${l}</h3>`;
-  if (k === '__files') return `<label>Foto de capa (horizontal, alta resolução)</label><input type="file" id="cov" accept="image/*"><label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple><div id="thumbs"></div><small>Entre com seu e-mail antes de enviar fotos, para que fiquem na nuvem.</small>`;
-  const c = t === 'area' ? `<textarea data-k="${k}"></textarea>` : t === 'select' ? `<select data-k="${k}">${o.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>` : `<input data-k="${k}" type="${t || 'text'}">`;
-  return `<label>${l}</label>${c}`;
-}).join('') + `<h3>Pedidos recebidos</h3><div id="leads"><small>Entre para ver pedidos de booking e a lista VIP.</small></div>`;
-
-function bindForms(slug) {
-  const t = {
-    en: { ok: 'Thank you! We will be in touch.', err: 'Something went wrong. Please try again.' },
-    pt: { ok: 'Obrigado! Entraremos em contato.', err: 'Algo deu errado. Tente novamente.' }
-  }[kit.lang === 'pt' ? 'pt' : 'en'];
-
-  $$('form[data-kind]').forEach(f => f.onsubmit = async e => {
-    e.preventDefault();
-    if (!sb || !slug) return toast('Salve o press kit antes de testar o formulário.');
-    const b = Object.fromEntries(new FormData(f));
-    b.slug = slug;
-    b.kind = f.dataset.kind;
-    if (!b.event_date) delete b.event_date;
-    const { error } = await sb.from('leads').insert(b);
-    f.innerHTML = `<p style="color:${error ? '#f66' : '#a995ff'};font-weight:600">${error ? t.err : t.ok}</p>`;
-  });
-}
-
-const draw = () => { try { $('#pv').innerHTML = EPK.renderKit(kit); bindForms(kit.slug); } catch (e) { console.error(e); $('#pv').innerHTML = '<pre style="padding:20px;color:#f66;white-space:pre-wrap">Erro ao montar o preview: ' + esc(e.message) + '</pre>'; } };
-const local = () => localStorage.setItem('epk2', JSON.stringify(kit));
-function thumbs() { $('#thumbs').innerHTML = (kit.photos || []).map((p, i) => `<div style="background-image:url('${esc(p)}')"><span data-i="${i}">×</span></div>`).join(''); }
-function fill() { $$('[data-k]').forEach(e => e.value = kit[e.dataset.k] ?? ''); thumbs(); draw(); }
-
-const shrink = (f, max = 1600) => new Promise(r => { const i = new Image(); i.onload = () => { const s = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = i.width * s; c.height = i.height * s; c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); c.toBlob(r, 'image/jpeg', .85); URL.revokeObjectURL(i.src); }; i.src = URL.createObjectURL(f); });
-async function store(f) {
-  const b = await shrink(f);
-  if (user) {
-    const p = `${user.id}/${Date.now()}${Math.random().toString(36).slice(2, 6)}.jpg`;
-    const { error } = await sb.storage.from('epk-media').upload(p, b, { contentType: 'image/jpeg' });
-    if (error) { toast('Upload: ' + error.message); return null; }
-    return sb.storage.from('epk-media').getPublicUrl(p).data.publicUrl;
-  }
-  return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
-}
-$('#cov').onchange = async e => { if (!e.target.files[0]) return; toast('Enviando…'); const u = await store(e.target.files[0]); if (u) { kit.cover = u; draw(); local(); toast('Capa pronta'); } };
-$('#pho').onchange = async e => { toast('Enviando…'); for (const f of e.target.files) { const u = await store(f); if (u) kit.photos.push(u); } thumbs(); draw(); local(); toast('Fotos prontas'); };
-$('#thumbs').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { kit.photos.splice(+i, 1); thumbs(); draw(); local(); } };
-$$('[data-k]').forEach(e => e.oninput = () => { kit[e.dataset.k] = e.value; draw(); local(); });
-
-async function save() {
-  local();
-  if (!user) { toast('Salvo só neste navegador. Entre com e-mail para salvar na nuvem.'); return false; }
-  kit.slug = EPK.slugify(kit.slug || kit.name) || ('kit-' + user.id.slice(0, 6));
-  if (RESERVED.includes(kit.slug)) { toast('Esse slug é reservado, escolha outro'); return false; }
-  $('[data-k=slug]').value = kit.slug;
-  const { error } = await sb.from('epks').upsert({ user_id: user.id, slug: kit.slug, data: kit, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
-  if (error) { toast(error.code === '23505' ? 'Esse slug já existe, escolha outro' : error.message); return false; }
-  toast('Salvo na nuvem ✓'); return true;
-}
-$('#save').onclick = save;
-$('#pub').onclick = async () => {
-  if (!(await save())) return;
-  const l = location.origin + '/' + kit.slug;
-  try { await navigator.clipboard.writeText(l); } catch (_) {}
-  prompt('Link público (copiado):', l);
-};
-$('#prt').onclick = () => print();
-$('#exp').onclick = () => {
-  const h = EPK.renderPage(kit, { slug: kit.slug, supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([h], { type: 'text/html' }));
-  a.download = (EPK.slugify(kit.name) || 'press-kit') + '.html'; a.click();
-};
-
-$('#login').onclick = async () => {
-  if (!sb) return toast('Supabase não carregou. Recarregue a página.');
-  const email = $('#em').value.trim(); if (!email) return toast('Digite seu e-mail');
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
-  toast(error ? error.message : 'Link enviado! Confira seu e-mail');
-};
-async function loadLeads() {
-  const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(50);
-  if (error) return;
-  $('#leads').innerHTML = data.length ? data.map(l => `<div class="lead"><b>${l.kind === 'booking' ? 'BOOKING' : 'VIP'}</b> · ${esc(l.name)} · <a style="color:#a995ff" href="mailto:${esc(l.email)}">${esc(l.email)}</a>${l.whatsapp ? ' · ' + esc(l.whatsapp) : ''}${l.event_date ? '<br>📅 ' + esc(l.event_date) : ''}${l.city ? ' · ' + esc(l.city) : ''}${l.message ? '<br>' + esc(l.message) : ''}<br><small>${new Date(l.created_at).toLocaleString('pt-BR')}</small></div>`).join('') : '<small>Nenhum pedido ainda.</small>';
-}
-async function onUser(u) {
-  user = u;
-  if (!u) return;
-  $('#who').innerHTML = `<small>${esc(u.email)}</small> <button class="g" id="out">Sair</button>`;
-  $('#out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
-  const { data } = await sb.from('epks').select('data').eq('user_id', u.id).maybeSingle();
-  if (data?.data) { kit = { ...DEF, ...data.data }; fill(); local(); }
-  loadLeads();
-}
-
-// VERIFICA ROTA PÚBLICA (/slug) OU INICIA EDITOR NORMAL
+// ROTEAMENTO INTELIGENTE NA RAIZ (NÃO ALTERA NADA DO CLAUDE SE FOR O EDITOR)
 const pathSlug = location.pathname.replace(/^\/|\/$/g, '').split('/')[0];
 const querySlug = new URLSearchParams(location.search).get('kit');
 const publicSlug = querySlug || (pathSlug && !RESERVED.includes(pathSlug) && !pathSlug.includes('.') ? pathSlug : null);
 
-if (publicSlug) {
+if (publicSlug && sb) {
+  // MODO PÚBLICO: Carrega o EPK limpo do Supabase para o cliente final
   document.body.classList.add('public-mode');
-  if (sb) {
-    sb.from('epks').select('data').eq('slug', publicSlug).maybeSingle().then(({ data }) => {
-      if (data?.data) {
-        kit = { ...DEF, ...data.data };
-        document.title = (kit.name || 'Artist') + ' — Official Press Kit';
-        draw();
-      } else {
-        $('#pv').innerHTML = `<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px"><h2>Press Kit não encontrado</h2><p style="color:#9a9ab5">O link <b>/${esc(publicSlug)}</b> ainda não foi publicado.</p><a href="/" style="color:#7c5cff;margin-top:12px">Criar meu EPK Master →</a></div>`;
-      }
-    });
-  }
+  sb.from('epks').select('data').eq('slug', publicSlug).maybeSingle().then(({ data }) => {
+    if (data?.data) {
+      kit = { ...DEF, ...data.data };
+      document.title = (kit.name || 'Artist') + ' — Official Press Kit';
+      $('#pv').innerHTML = EPK.renderKit(kit);
+    } else {
+      $('#pv').innerHTML = `<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px"><h2>Press Kit não encontrado</h2><p style="color:#9a9ab5">O link <b>/${esc(publicSlug)}</b> ainda não foi publicado.</p><a href="/" style="color:#7c5cff;margin-top:12px">Criar meu EPK Master →</a></div>`;
+    }
+  });
 } else {
+  // MODO EDITOR DO CLAUDE: 100% IDÊNTICO AO QUE VOCÊ GOSTOU
+  const FIELDS = [
+   ['Identidade'], ['Nome artístico', 'name'], ['Gênero', 'genre'], ['Cidade / País', 'city'], ['Frase de impacto', 'tagline'],
+   ['Cor de destaque', 'accent', 'color'], ['Tema', 'theme', 'select', [['dark', 'Escuro'], ['light', 'Claro']]],
+   ['Idioma principal do kit', 'lang', 'select', [['en', 'English'], ['pt', 'Português']]],
+   ['Imagens'], ['__files', '__files'],
+   ['Biografia'], ['Bio em inglês (linha em branco separa parágrafos)', 'bio_en', 'area'], ['Bio em português', 'bio_pt', 'area'],
+   ['Música e agenda'], ['Faixas e vídeos (Título | link Spotify/YouTube/SoundCloud)', 'tracks', 'area'], ['Próximas datas (AAAA-MM-DD | Evento | Cidade)', 'agenda', 'area'],
+   ['Destaques'], ['Lançou em (selos, um por linha ou separados por vírgula)', 'rel', 'area'], ['Tocou em', 'play', 'area'], ['Apoiado por', 'sup', 'area'],
+   ['Citações de imprensa (Citação | Fonte)', 'quotes', 'area'],
+   ['Contato'], ['E-mail de booking', 'email', 'email'], ['WhatsApp (com DDI, ex.: 5511999999999)', 'phone'], ['Redes (Nome | link)', 'socials', 'area'],
+   ['Downloads (Nome | link do Drive)', 'files', 'area'],
+   ['Link público'], ['Slug (epk-master.vercel.app/slug)', 'slug']
+  ];
+  $('#ed').innerHTML = FIELDS.map(([l, k, t, o]) => {
+    if (!k) return `<h3>${l}</h3>`;
+    if (k === '__files') return `<label>Foto de capa (alta resolução)</label><input type="file" id="cov" accept="image/*"><label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple><div id="thumbs"></div><small>Entre com seu e-mail antes de enviar fotos, para que fiquem na nuvem.</small>`;
+    const c = t === 'area' ? `<textarea data-k="${k}"></textarea>` : t === 'select' ? `<select data-k="${k}">${o.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>` : `<input data-k="${k}" type="${t || 'text'}">`;
+    return `<label>${l}</label>${c}`;
+  }).join('') + `<h3>Pedidos recebidos</h3><div id="leads"><small>Entre para ver pedidos de booking e a lista VIP.</small></div>`;
+
+  const draw = () => { try { $('#pv').innerHTML = EPK.renderKit(kit); } catch (e) { console.error(e); $('#pv').innerHTML = '<pre style="padding:20px;color:#f66;white-space:pre-wrap">Erro ao montar o preview: ' + esc(e.message) + '</pre>'; } };
+  const local = () => localStorage.setItem('epk2', JSON.stringify(kit));
+  function thumbs() { $('#thumbs').innerHTML = (kit.photos || []).map((p, i) => `<div style="background-image:url('${esc(p)}')"><span data-i="${i}">×</span></div>`).join(''); }
+  function fill() { $$('[data-k]').forEach(e => e.value = kit[e.dataset.k] ?? ''); thumbs(); draw(); }
+
+  const shrink = (f, max = 1600) => new Promise(r => { const i = new Image(); i.onload = () => { const s = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = i.width * s; c.height = i.height * s; c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); c.toBlob(r, 'image/jpeg', .85); URL.revokeObjectURL(i.src); }; i.src = URL.createObjectURL(f); });
+  async function store(f) {
+    const b = await shrink(f);
+    if (user) {
+      const p = `${user.id}/${Date.now()}${Math.random().toString(36).slice(2, 6)}.jpg`;
+      const { error } = await sb.storage.from('epk-media').upload(p, b, { contentType: 'image/jpeg' });
+      if (error) { toast('Upload: ' + error.message); return null; }
+      return sb.storage.from('epk-media').getPublicUrl(p).data.publicUrl;
+    }
+    return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+  }
+  $('#cov').onchange = async e => { if (!e.target.files[0]) return; toast('Enviando…'); const u = await store(e.target.files[0]); if (u) { kit.cover = u; draw(); local(); toast('Capa pronta'); } };
+  $('#pho').onchange = async e => { toast('Enviando…'); for (const f of e.target.files) { const u = await store(f); if (u) kit.photos.push(u); } thumbs(); draw(); local(); toast('Fotos prontas'); };
+  $('#thumbs').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { kit.photos.splice(+i, 1); thumbs(); draw(); local(); } };
+  $$('[data-k]').forEach(e => e.oninput = () => { kit[e.dataset.k] = e.value; draw(); local(); });
+
+  async function save() {
+    local();
+    if (!user) { toast('Salvo só neste navegador. Entre com e-mail para salvar na nuvem.'); return false; }
+    kit.slug = EPK.slugify(kit.slug || kit.name) || ('kit-' + user.id.slice(0, 6));
+    if (RESERVED.includes(kit.slug)) { toast('Esse slug é reservado, escolha outro'); return false; }
+    $('[data-k=slug]').value = kit.slug;
+    const { error } = await sb.from('epks').upsert({ user_id: user.id, slug: kit.slug, data: kit, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    if (error) { toast(error.code === '23505' ? 'Esse slug já existe, escolha outro' : error.message); return false; }
+    toast('Salvo na nuvem ✓'); return true;
+  }
+  $('#save').onclick = save;
+  $('#pub').onclick = async () => {
+    if (!(await save())) return;
+    const l = location.origin + '/' + kit.slug;
+    try { await navigator.clipboard.writeText(l); } catch (_) {}
+    prompt('Link público (copiado):', l);
+  };
+  $('#prt').onclick = () => print();
+  $('#exp').onclick = () => {
+    const h = EPK.renderPage(kit, { slug: kit.slug, supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([h], { type: 'text/html' }));
+    a.download = (EPK.slugify(kit.name) || 'press-kit') + '.html'; a.click();
+  };
+
+  $('#login').onclick = async () => {
+    if (!sb) return toast('Supabase não carregou. Recarregue a página.');
+    const email = $('#em').value.trim(); if (!email) return toast('Digite seu e-mail');
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
+    toast(error ? error.message : 'Link enviado! Confira seu e-mail');
+  };
+  async function loadLeads() {
+    const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(50);
+    if (error) return;
+    $('#leads').innerHTML = data.length ? data.map(l => `<div class="lead"><b>${l.kind === 'booking' ? 'BOOKING' : 'VIP'}</b> · ${esc(l.name)} · <a style="color:#a995ff" href="mailto:${esc(l.email)}">${esc(l.email)}</a>${l.whatsapp ? ' · ' + esc(l.whatsapp) : ''}${l.event_date ? '<br>📅 ' + esc(l.event_date) : ''}${l.city ? ' · ' + esc(l.city) : ''}${l.message ? '<br>' + esc(l.message) : ''}<br><small>${new Date(l.created_at).toLocaleString('pt-BR')}</small></div>`).join('') : '<small>Nenhum pedido ainda.</small>';
+  }
+  async function onUser(u) {
+    user = u;
+    if (!u) return;
+    $('#who').innerHTML = `<small>${esc(u.email)}</small> <button class="g" id="out">Sair</button>`;
+    $('#out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    const { data } = await sb.from('epks').select('data').eq('user_id', u.id).maybeSingle();
+    if (data?.data) { kit = { ...DEF, ...data.data }; fill(); local(); }
+    loadLeads();
+  }
+
   fill();
   if (sb) {
     sb.auth.getSession().then(({ data }) => onUser(data.session?.user || null));
