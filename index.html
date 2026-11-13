@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GROOVIBE — Official Press Kit | EPK Master</title>
+    <title>EPK Master — Studio Groove Engine</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS Client v2 -->
@@ -27,7 +27,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #030508; color: #F8FAFC; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .glass { background: rgba(10, 14, 23, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass { background: rgba(10, 14, 23, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
         @media print {
             body * { visibility: visible; }
             .no-print { display: none !important; }
@@ -36,34 +36,33 @@
 </head>
 <body class="min-h-screen selection:bg-neonCyan selection:text-obsidian flex flex-col items-center">
 
-    <!-- Floating Top Bar (Ações Rápidas) -->
+    <!-- Top Navbar -->
     <header class="w-full max-w-5xl px-6 py-6 flex justify-between items-center z-40 no-print">
         <div class="flex items-center space-x-3">
             <div class="h-2 w-2 rounded-full bg-neonCyan shadow-[0_0_10px_#00F5FF]"></div>
             <span class="text-xs font-black tracking-widest uppercase text-slate-400 font-mono">EPK MASTER <span class="text-slate-600">//</span> STUDIO GROOVE</span>
         </div>
         <div class="flex items-center space-x-3">
-            <!-- Idioma / PT-EN -->
             <div class="flex bg-cardDark border border-slate-800 rounded-lg p-1 text-xs font-mono">
                 <button onclick="switchLang('pt')" id="lang-pt" class="px-3 py-1 rounded bg-neonCyan text-obsidian font-bold transition">PT</button>
                 <button onclick="switchLang('en')" id="lang-en" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">EN</button>
             </div>
-            <!-- Botão Abrir Painel Admin -->
-            <button onclick="toggleAdminPanel()" class="bg-cardDark hover:bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition">
-                ⚙️ Editar Press Kit
+            <button onclick="toggleAdminPanel()" class="bg-neonCyan text-obsidian px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#00d4df] transition shadow-[0_0_15px_rgba(0,245,255,0.25)]">
+                ⚙️ Configurar / Editar
             </button>
-            <button onclick="window.print()" class="bg-neonCyan text-obsidian px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#00d4df] transition shadow-[0_0_20px_rgba(0,245,255,0.2)]">
-                Exportar PDF
+            <button onclick="window.print()" class="bg-cardDark hover:bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition">
+                PDF
             </button>
         </div>
     </header>
 
-    <!-- Main EPK Canvas (Estilo Press Kit Pro / DJ Glen / Rikaya) -->
+    <!-- Main EPK Canvas -->
     <main class="w-full max-w-4xl px-4 py-8 space-y-10">
         
-        <!-- Hero Section & Imagem de Capa Imersiva -->
-        <div class="relative w-full rounded-3xl overflow-hidden glass p-8 lg:p-14 shadow-2xl border border-white/10">
-            <!-- Background Glow -->
+        <!-- Hero Section com Foto de Fundo Dinâmica -->
+        <div id="hero-banner" class="relative w-full rounded-3xl overflow-hidden glass p-8 lg:p-14 shadow-2xl border border-white/10 bg-cover bg-center transition-all duration-500">
+            <!-- Overlay escuro para leitura perfeita -->
+            <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/80 to-transparent pointer-events-none"></div>
             <div class="absolute -top-32 -right-32 w-80 h-80 bg-neonCyan/10 rounded-full blur-3xl pointer-events-none"></div>
 
             <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
@@ -71,8 +70,8 @@
                     <span id="view-genre" class="inline-block px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase mb-4 bg-neonCyan/10 text-neonCyan border border-neonCyan/30 font-mono">
                         TECH HOUSE / DEEP TECH
                     </span>
-                    <h1 id="view-name" class="text-4xl lg:text-7xl font-black tracking-tighter text-white uppercase">GROOVIBE</h1>
-                    <p id="view-location" class="text-sm text-slate-400 mt-2 uppercase tracking-widest font-mono">Mauá, São Paulo — Brasil</p>
+                    <h1 id="view-name" class="text-4xl lg:text-7xl font-black tracking-tighter text-white uppercase">SEU NOME ARTÍSTICO</h1>
+                    <p id="view-location" class="text-sm text-slate-400 mt-2 uppercase tracking-widest font-mono">CIDADE — PAÍS</p>
                 </div>
                 <div class="text-left md:text-right">
                     <span class="text-[10px] text-slate-500 uppercase tracking-widest block font-mono">OFFICIAL PRESS KIT</span>
@@ -81,28 +80,27 @@
             </div>
         </div>
 
-        <!-- Grid Principal: Biografia & Redes / Links -->
+        <!-- Grid Principal -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <!-- Coluna Esquerda: Bio & Agenda -->
             <div class="lg:col-span-8 space-y-8">
-                <!-- Bloco de Biografia -->
+                <!-- Biografia -->
                 <div class="glass rounded-3xl p-8 border border-white/10">
                     <h2 class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4 font-mono flex items-center space-x-2">
                         <span class="w-1.5 h-1.5 bg-neonCyan rounded-full"></span>
                         <span id="txt-biotitle">BIOGRAPHY</span>
                     </h2>
-                    <p id="view-bio" class="text-slate-200 text-base lg:text-lg leading-relaxed font-normal">
-                        Mente criativa por trás do Studio Groove e Hertz Cartel. Com grooves magnéticos e linhas de baixo implacáveis, traduz a energia crua das pistas subterrâneas para o cenário global.
+                    <p id="view-bio" class="text-slate-300 text-base lg:text-lg leading-relaxed font-normal">
+                        Adicione sua biografia profissional aqui. Conte sua trajetória, principais lançamentos em gravadoras e o impacto do seu som nas pistas.
                     </p>
                 </div>
 
-                <!-- Bloco de Mídia / Player -->
+                <!-- Player de Mídia -->
                 <div class="glass rounded-3xl p-6 border border-white/10 flex items-center justify-between">
                     <div class="flex items-center space-x-4">
                         <div class="w-12 h-12 rounded-2xl bg-neonCyan text-obsidian flex items-center justify-center font-black text-lg shadow-[0_0_15px_rgba(0,245,255,0.4)]">▶</div>
                         <div>
-                            <span class="text-sm font-bold text-white block">Promo Mix 2026 (Private Stream)</span>
+                            <span class="text-sm font-bold text-white block">Promo Mix / Latest Release</span>
                             <span class="text-xs text-slate-400 font-mono">Exclusive for A&Rs & Promoters</span>
                         </div>
                     </div>
@@ -110,25 +108,27 @@
                 </div>
             </div>
 
-            <!-- Coluna Direita: Redes Sociais & Contato Direto -->
             <div class="lg:col-span-4 space-y-6">
                 <!-- Links Oficiais -->
                 <div class="glass rounded-3xl p-6 border border-white/10 space-y-3">
                     <h3 class="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-4 font-mono">Official Links</h3>
                     
-                    <a id="view-spotify" href="https://spotify.com" target="_blank" class="w-full bg-obsidian/80 hover:bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-200 transition flex items-center justify-between">
+                    <a id="view-spotify" href="#" target="_blank" class="w-full bg-obsidian/80 hover:bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-200 transition flex items-center justify-between">
                         <span>Spotify Profile</span> <span class="text-neonCyan">↗</span>
                     </a>
-                    <a id="view-soundcloud" href="https://soundcloud.com" target="_blank" class="w-full bg-obsidian/80 hover:bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-200 transition flex items-center justify-between">
+                    <a id="view-soundcloud" href="#" target="_blank" class="w-full bg-obsidian/80 hover:bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-200 transition flex items-center justify-between">
                         <span>SoundCloud Sets</span> <span class="text-neonCyan">↗</span>
+                    </a>
+                    <a id="view-instagram" href="#" target="_blank" class="w-full bg-obsidian/80 hover:bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-200 transition flex items-center justify-between">
+                        <span>Instagram</span> <span class="text-neonCyan">↗</span>
                     </a>
                 </div>
 
-                <!-- Bloco de Booking / Contato -->
+                <!-- Booking -->
                 <div class="glass rounded-3xl p-6 border border-neonCyan/30 bg-gradient-to-b from-cardDark to-neonCyan/5 space-y-4">
                     <h3 class="text-[10px] uppercase tracking-widest text-neonCyan font-bold font-mono">Direct Booking</h3>
-                    <p id="view-email" class="text-sm font-bold text-white font-mono break-all">booking@studiogroove.app</p>
-                    <a id="view-email-btn" href="mailto:booking@studiogroove.app" class="block w-full bg-neonCyan text-obsidian text-center py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#00d4df] transition shadow-[0_0_15px_rgba(0,245,255,0.2)]">
+                    <p id="view-email" class="text-sm font-bold text-white font-mono break-all">booking@seuemail.com</p>
+                    <a id="view-email-btn" href="#" class="block w-full bg-neonCyan text-obsidian text-center py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#00d4df] transition shadow-[0_0_15px_rgba(0,245,255,0.2)]">
                         Enviar E-mail
                     </a>
                 </div>
@@ -136,77 +136,80 @@
 
         </div>
 
-        <!-- Footer -->
         <footer class="text-center py-8 border-t border-slate-800/80 text-xs text-slate-500 font-mono">
             Powered by <strong class="text-slate-300">EPK Master</strong> &bull; Studio Groove Ecosystem
         </footer>
 
     </main>
 
-    <!-- Painel Lateral Oculto (Admin / Gerenciador) -->
-    <div id="admin-panel" class="fixed inset-y-0 right-0 w-full max-w-md bg-cardDark border-l border-slate-800 p-8 shadow-2xl transform translate-x-full transition-transform duration-300 z-50 overflow-y-auto no-print">
+    <!-- Painel Lateral de Configuração (Abre automaticamente se for novo) -->
+    <div id="admin-panel" class="fixed inset-y-0 right-0 w-full max-w-md bg-cardDark border-l border-slate-800 p-8 shadow-2xl transform transition-transform duration-300 z-50 overflow-y-auto no-print">
         <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-800">
-            <h2 class="text-base font-black text-white uppercase tracking-wider">Painel do Artista</h2>
+            <div>
+                <h2 class="text-base font-black text-white uppercase tracking-wider">Painel do Artista</h2>
+                <p class="text-[11px] text-slate-400">Preencha os dados do seu Press Kit</p>
+            </div>
             <button onclick="toggleAdminPanel()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
         </div>
 
         <div class="space-y-4">
             <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Slug / URL (ex: bruno)</label>
-                <input type="text" id="input-slug" value="groovibe" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-neonCyan">
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Identificador Único (Slug na URL)</label>
+                <input type="text" id="input-slug" placeholder="ex: meunome" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-neonCyan">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-300 mb-1">Nome Artístico</label>
-                <input type="text" id="input-name" value="GROOVIBE" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
+                <input type="text" id="input-name" placeholder="Ex: DJ JOÃO SILVA" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Gênero</label>
-                    <input type="text" id="input-genre" value="Tech House / Deep Tech" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
+                    <input type="text" id="input-genre" placeholder="Ex: Tech House" value="TECH HOUSE / DEEP TECH" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Localização</label>
-                    <input type="text" id="input-location" value="Mauá, São Paulo — Brasil" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
+                    <input type="text" id="input-location" placeholder="Ex: São Paulo, Brasil" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
                 </div>
             </div>
             <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Link da Foto de Capa (URL da Imagem)</label>
+                <input type="text" id="input-photo" placeholder="Cole o link de uma foto HD (ex: Unsplash ou Imgur)" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
+            </div>
+            <div>
                 <label class="block text-xs font-semibold text-slate-300 mb-1">Biografia</label>
-                <textarea id="input-bio" rows="4" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan resize-none">Mente criativa por trás do Studio Groove e Hertz Cartel. Com grooves magnéticos e linhas de baixo implacáveis, traduz a energia crua das pistas subterrâneas para o cenário global.</textarea>
+                <textarea id="input-bio" rows="4" placeholder="Escreva sua história na música eletrônica..." oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan resize-none"></textarea>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-300 mb-1">Link Spotify</label>
-                <input type="text" id="input-spotify" value="https://spotify.com" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
+                <input type="text" id="input-spotify" placeholder="https://spotify.com/artista" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-300 mb-1">Link SoundCloud</label>
-                <input type="text" id="input-soundcloud" value="https://soundcloud.com" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
+                <input type="text" id="input-soundcloud" placeholder="https://soundcloud.com/artista" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Link Instagram</label>
+                <input type="text" id="input-instagram" placeholder="https://instagram.com/artista" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-300 mb-1">E-mail de Booking</label>
-                <input type="text" id="input-email" value="booking@studiogroove.app" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
+                <input type="text" id="input-email" placeholder="booking@seuemail.com" oninput="syncData()" class="w-full bg-obsidian border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-neonCyan">
             </div>
 
             <div class="pt-4 border-t border-slate-800 flex space-x-3">
-                <button onclick="saveToCloud()" class="flex-1 bg-emerald-500 text-obsidian py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-emerald-400 transition shadow-lg">
+                <button onclick="saveToCloud()" class="flex-1 bg-neonCyan text-obsidian py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#00d4df] transition shadow-lg">
                     Salvar na Nuvem ☁️
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Script de Integração Supabase & Lógica Imersiva -->
+    <!-- Script de Gestão -->
     <script>
         const SUPABASE_URL = 'https://kwxutgeqexqqrwhgvebh.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_OIFV3bbUJCHosiu1vomf3Q_Jc0X7XGQ';
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let currentLang = 'pt';
-
-        const bioTexts = {
-            pt: "Mente criativa por trás do Studio Groove e Hertz Cartel. Com grooves magnéticos e linhas de baixo implacáveis, traduz a energia crua das pistas subterrâneas para o cenário global.",
-            en: "Creative mind behind Studio Groove and Hertz Cartel. With magnetic grooves and relentless basslines, translating the raw energy of underground dancefloors to the global stage."
-        };
 
         function toggleAdminPanel() {
             const panel = document.getElementById('admin-panel');
@@ -214,45 +217,59 @@
         }
 
         function syncData() {
-            document.getElementById('view-name').innerText = document.getElementById('input-name').value || 'ARTIST';
-            document.getElementById('view-genre').innerText = document.getElementById('input-genre').value;
-            document.getElementById('view-location').innerText = document.getElementById('input-location').value;
-            document.getElementById('view-bio').innerText = document.getElementById('input-bio').value;
-            document.getElementById('view-spotify').href = document.getElementById('input-spotify').value;
-            document.getElementById('view-soundcloud').href = document.getElementById('input-soundcloud').value;
+            const name = document.getElementById('input-name').value;
+            const genre = document.getElementById('input-genre').value;
+            const location = document.getElementById('input-location').value;
+            const bio = document.getElementById('input-bio').value;
+            const photo = document.getElementById('input-photo').value;
+            const spotify = document.getElementById('input-spotify').value;
+            const soundcloud = document.getElementById('input-soundcloud').value;
+            const instagram = document.getElementById('input-instagram').value;
             const email = document.getElementById('input-email').value;
-            document.getElementById('view-email').innerText = email;
-            document.getElementById('view-email-btn').href = 'mailto:' + email;
-        }
 
-        function switchLang(lang) {
-            currentLang = lang;
-            document.getElementById('lang-pt').className = lang === 'pt' ? 'px-3 py-1 rounded bg-neonCyan text-obsidian font-bold transition' : 'px-3 py-1 rounded text-slate-400 hover:text-white transition';
-            document.getElementById('lang-en').className = lang === 'en' ? 'px-3 py-1 rounded bg-neonCyan text-obsidian font-bold transition' : 'px-3 py-1 rounded text-slate-400 hover:text-white transition';
+            document.getElementById('view-name').innerText = name || 'SEU NOME ARTÍSTICO';
+            document.getElementById('view-genre').innerText = genre || 'TECH HOUSE / DEEP TECH';
+            document.getElementById('view-location').innerText = location || 'CIDADE — PAÍS';
+            document.getElementById('view-bio').innerText = bio || 'Adicione sua biografia profissional aqui. Conte sua trajetória, principais lançamentos em gravadoras e o impacto do seu som nas pistas.';
             
-            document.getElementById('txt-biotitle').innerText = lang === 'en' ? 'BIOGRAPHY' : 'BIOGRAFIA';
-            if(document.getElementById('input-bio').value === bioTexts.pt || document.getElementById('input-bio').value === bioTexts.en) {
-                document.getElementById('input-bio').value = bioTexts[lang];
-                syncData();
+            if (photo) {
+                document.getElementById('hero-banner').style.backgroundImage = `linear-gradient(to top, #030508, rgba(3,5,8,0.75)), url('${photo}')`;
+            }
+
+            document.getElementById('view-spotify').href = spotify || '#';
+            document.getElementById('view-soundcloud').href = soundcloud || '#';
+            document.getElementById('view-instagram').href = instagram || '#';
+            
+            if(email) {
+                document.getElementById('view-email').innerText = email;
+                document.getElementById('view-email-btn').href = 'mailto:' + email;
             }
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             const artistSlug = params.get('artist');
+            
             if (artistSlug) {
+                // Se tem artista na URL, esconde o painel e busca do banco
                 const { data } = await db.from('epks').select('*').eq('slug', artistSlug).single();
                 if (data) {
                     document.getElementById('input-slug').value = data.slug;
-                    document.getElementById('input-name').value = data.artist_name;
-                    document.getElementById('input-genre').value = data.genre;
-                    document.getElementById('input-location').value = data.location;
-                    document.getElementById('input-bio').value = data.bio;
-                    document.getElementById('input-spotify').value = data.spotify_link;
-                    document.getElementById('input-soundcloud').value = data.soundcloud_link;
-                    document.getElementById('input-email').value = data.booking_email;
+                    document.getElementById('input-name').value = data.artist_name || '';
+                    document.getElementById('input-genre').value = data.genre || '';
+                    document.getElementById('input-location').value = data.location || '';
+                    document.getElementById('input-bio').value = data.bio || '';
+                    document.getElementById('input-photo').value = data.photo_url || '';
+                    document.getElementById('input-spotify').value = data.spotify_link || '';
+                    document.getElementById('input-soundcloud').value = data.soundcloud_link || '';
+                    document.getElementById('input-instagram').value = data.instagram_link || '';
+                    document.getElementById('input-email').value = data.booking_email || '';
                     syncData();
+                    toggleAdminPanel(); // Fecha o painel para exibir apenas o EPK limpo
                 }
+            } else {
+                // Se for novo acesso sem ?artist=, abre o painel automaticamente para orientar o usuário
+                document.getElementById('admin-panel').classList.remove('translate-x-full');
             }
         });
 
@@ -262,20 +279,22 @@
             const genre = document.getElementById('input-genre').value;
             const location = document.getElementById('input-location').value;
             const bio = document.getElementById('input-bio').value;
+            const photo_url = document.getElementById('input-photo').value;
             const spotify_link = document.getElementById('input-spotify').value;
             const soundcloud_link = document.getElementById('input-soundcloud').value;
+            const instagram_link = document.getElementById('input-instagram').value;
             const booking_email = document.getElementById('input-email').value;
 
-            if (!slug) { alert('Defina um slug.'); return; }
+            if (!slug) { alert('Por favor, defina um identificador (slug) único para a URL.'); return; }
 
             const { error } = await db.from('epks').upsert({
-                slug, artist_name, genre, location, bio, spotify_link, soundcloud_link, booking_email
+                slug, artist_name, genre, location, bio, photo_url, spotify_link, soundcloud_link, instagram_link, booking_email
             }, { onConflict: 'slug' });
 
             if (error) {
-                alert('Erro: ' + error.message);
+                alert('Erro ao salvar: ' + error.message);
             } else {
-                alert(`Salvo com sucesso!\nLink público: ${window.location.origin}${window.location.pathname}?artist=${slug}`);
+                alert(`Press kit salvo com sucesso!\nSeu link exclusivo:\n${window.location.origin}${window.location.pathname}?artist=${slug}`);
                 toggleAdminPanel();
             }
         }
