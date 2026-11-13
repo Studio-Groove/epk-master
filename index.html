@@ -8,31 +8,38 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui,sans-serif;background:#0b0b10;color:#e8e8ef}
-.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#14141c;border-bottom:1px solid #26263a;position:sticky;top:0;z-index:10}
-.top b{font-weight:800;letter-spacing:.5px;margin-right:auto}.top input{width:210px}
-.app{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 54px)}
-#ed{padding:16px;border-right:1px solid #26263a;overflow:auto;max-height:calc(100vh - 54px);position:sticky;top:54px}
-h3{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#9a9ab5;margin:22px 0 8px}
-label{display:block;font-size:12px;color:#b5b5cc;margin:10px 0 4px}
-input,textarea,select{width:100%;background:#0f0f16;border:1px solid #2c2c44;color:#fff;border-radius:8px;padding:9px 10px;font:inherit;font-size:14px}
-textarea{min-height:76px;resize:vertical}input[type=color]{padding:2px;height:38px}
-button{background:#7c5cff;color:#fff;border:0;border-radius:8px;padding:9px 14px;font:600 13px Inter;cursor:pointer}button.g{background:#26263a}
+.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#14141c;border-bottom:1px solid #26263a;position:sticky;top:0;z-index:50}
+.top b{font-weight:800;letter-spacing:.5px;margin-right:auto}
+.top input{width:210px;background:#0f0f16;border:1px solid #2c2c44;color:#fff;border-radius:6px;padding:6px 10px;font-size:13px}
+.app{display:grid;grid-template-columns:420px 1fr;min-height:calc(100vh - 54px)}
+#ed{padding:20px;border-right:1px solid #26263a;overflow-y:auto;max-height:calc(100vh - 54px);background:#101017}
+#pv{overflow-y:auto;max-height:calc(100vh - 54px)}
+h3{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#9a9ab5;margin:24px 0 10px;border-bottom:1px solid #26263a;padding-bottom:4px}
+label{display:block;font-size:12px;color:#b5b5cc;margin:10px 0 4px;font-weight:500}
+input,textarea,select{width:100%;background:#0f0f16;border:1px solid #2c2c44;color:#fff;border-radius:8px;padding:9px 10px;font:inherit;font-size:13px}
+textarea{min-height:76px;resize:vertical}input[type=color]{padding:2px;height:38px;cursor:pointer}
+button{background:#7c5cff;color:#fff;border:0;border-radius:8px;padding:9px 14px;font:600 13px Inter;cursor:pointer;transition:.2s}
+button:hover{opacity:.9}
+button.g{background:#26263a;color:#d1d1e0}
+button.g:hover{background:#32324d;color:#fff}
 #thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
 #thumbs div{position:relative;aspect-ratio:1;background-size:cover;background-position:center;border-radius:6px}
-#thumbs span{position:absolute;top:2px;right:2px;background:#000a;border-radius:50%;width:20px;height:20px;text-align:center;line-height:20px;cursor:pointer;font-size:13px}
+#thumbs span{position:absolute;top:2px;right:2px;background:#000a;border-radius:50%;width:20px;height:20px;text-align:center;line-height:20px;cursor:pointer;font-size:13px;color:#fff}
 .lead{background:#14141c;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px}.lead b{color:#a995ff}
 small{color:#7d7d98;font-size:11px}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;border-radius:8px;font-weight:600;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:99}#toast.on{opacity:1}
 
-/* MODO PÚBLICO (Quando acessado via /nome-do-artista) */
+/* MODO PÚBLICO */
 body.public-mode .top, body.public-mode #ed { display: none !important; }
 body.public-mode .app { display: block; min-height: 100vh; }
+body.public-mode #pv { max-height: none; }
 
 @media(max-width:900px){.app{grid-template-columns:1fr}#ed{position:static;max-height:none;border:0}}
 @media print{.top,#ed,#toast{display:none!important}.app{display:block}body{background:#fff}}
 </style>
 </head>
 <body>
+
 <div class="top">
   <b>EPK&nbsp;MASTER</b>
   <span id="who"><input id="em" type="email" placeholder="seu e-mail para entrar"> <button class="g" id="login">Entrar</button></span>
@@ -41,7 +48,12 @@ body.public-mode .app { display: block; min-height: 100vh; }
   <button class="g" id="exp">Baixar HTML</button>
   <button class="g" id="prt">PDF</button>
 </div>
-<div class="app"><div id="ed"></div><div id="pv"></div></div>
+
+<div class="app">
+  <div id="ed"></div>
+  <div id="pv"></div>
+</div>
+
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -131,7 +143,7 @@ ${wa ? `<a class="btn o" href="https://wa.me/${wa}" target="_blank" rel="noopene
 <div>${so.map(([n, u]) => safe(u) ? `<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>` : '').join('')}</div>
 <div class="forms">
 <form data-kind="booking"><h4>${t.book}</h4>${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}${field('event_date', t.date, 'date')}${field('city', t.city)}<textarea name="message" rows="3" placeholder="${t.msg}"></textarea><button class="btn">${t.send}</button></form>
-<form data-kind="vip"><h4>${t.vip}</h4>${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}<button class="btn">${t.send}</button></form>
+<form data-kind="vip"><h4>${t.vip}</h4>${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}${field('btn', t.send)}<button class="btn">${t.send}</button></form>
 </div></footer></div>`;
 }
 
@@ -168,7 +180,7 @@ let savedLocal = {};
 try { savedLocal = JSON.parse(localStorage.getItem('epk2') || '{}'); } catch (_) {}
 let kit = { ...DEF, ...savedLocal };
 
-// 1. MONTA O EDITOR E O PREVIEW IMEDIATAMENTE (Zero atraso)
+// 1. MONTAGEM DO PAINEL DE EDIÇÃO (LADO ESQUERDO)
 const FIELDS = [
  ['Identidade'], ['Nome artístico', 'name'], ['Gênero', 'genre'], ['Cidade / País', 'city'], ['Frase de impacto', 'tagline'],
  ['Cor de destaque', 'accent', 'color'], ['Tema', 'theme', 'select', [['dark', 'Escuro'], ['light', 'Claro']]],
@@ -185,7 +197,7 @@ const FIELDS = [
 
 $('#ed').innerHTML = FIELDS.map(([l, k, t, o]) => {
   if (!k) return `<h3>${l}</h3>`;
-  if (k === '__files') return `<label>Foto de capa (alta resolução)</label><input type="file" id="cov" accept="image/*"><label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple><div id="thumbs"></div><small>Entre com seu e-mail antes de enviar fotos, para que fiquem na nuvem.</small>`;
+  if (k === '__files') return `<label>Foto de capa (alta resolução)</label><input type="file" id="cov" accept="image/*"><label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple><div id="thumbs"></div><small>Entre com seu e-mail antes de enviar fotos.</small>`;
   const c = t === 'area' ? `<textarea data-k="${k}"></textarea>` : t === 'select' ? `<select data-k="${k}">${o.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>` : `<input data-k="${k}" type="${t || 'text'}">`;
   return `<label>${l}</label>${c}`;
 }).join('') + `<h3>Pedidos recebidos</h3><div id="leads"><small>Entre para ver pedidos de booking e a lista VIP.</small></div>`;
@@ -212,21 +224,41 @@ const draw = () => {
   $('#pv').innerHTML = EPK.renderKit(kit);
   bindForms(kit.slug);
 };
-const local = () => { try { localStorage.setItem('epk2', JSON.stringify(kit)); } catch (_) {} };
-const thumbs = () => { $('#thumbs').innerHTML = (kit.photos || []).map((p, i) => `<div style="background-image:url('${esc(p)}')"><span data-i="${i}">×</span></div>`).join(''); };
-const fill = () => { $$('[data-k]').forEach(e => e.value = kit[e.dataset.k] ?? ''); thumbs(); draw(); };
 
-// Renderiza imediatamente na tela
+const local = () => { try { localStorage.setItem('epk2', JSON.stringify(kit)); } catch (_) {} };
+
+const thumbs = () => { 
+  const th = $('#thumbs');
+  if (th) th.innerHTML = (kit.photos || []).map((p, i) => `<div style="background-image:url('${esc(p)}')"><span data-i="${i}">×</span></div>`).join(''); 
+};
+
+const fill = () => { 
+  $$('[data-k]').forEach(e => {
+    if (kit[e.dataset.k] !== undefined) e.value = kit[e.dataset.k];
+  }); 
+  thumbs(); 
+  draw(); 
+};
+
+// Executa o preenchimento inicial imediato
 fill();
 
-// 2. CONECTA OS EVENTOS DE DIGITAÇÃO EM TEMPO REAL
-$$('[data-k]').forEach(e => e.addEventListener('input', () => {
-  kit[e.dataset.k] = e.value;
-  draw();
-  local();
-}));
+// Vincula a digitação em tempo real de cada input
+$$('[data-k]').forEach(e => {
+  e.addEventListener('input', () => {
+    kit[e.dataset.k] = e.value;
+    draw();
+    local();
+  });
+  e.addEventListener('change', () => {
+    kit[e.dataset.k] = e.value;
+    draw();
+    local();
+  });
+});
 
 const shrink = (f, max = 1600) => new Promise(r => { const i = new Image(); i.onload = () => { const s = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = i.width * s; c.height = i.height * s; c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); c.toBlob(r, 'image/jpeg', .85); URL.revokeObjectURL(i.src); }; i.src = URL.createObjectURL(f); });
+
 async function store(f) {
   const b = await shrink(f);
   if (user && sb) {
@@ -238,36 +270,50 @@ async function store(f) {
   return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
 }
 
-$('#cov').onchange = async e => { if (!e.target.files[0]) return; toast('Enviando…'); const u = await store(e.target.files[0]); if (u) { kit.cover = u; draw(); local(); toast('Capa pronta'); } };
-$('#pho').onchange = async e => { toast('Enviando…'); for (const f of e.target.files) { const u = await store(f); if (u) kit.photos.push(u); } thumbs(); draw(); local(); toast('Fotos prontas'); };
-$('#thumbs').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { kit.photos.splice(+i, 1); thumbs(); draw(); local(); } };
+const covInput = $('#cov');
+if (covInput) covInput.onchange = async e => { if (!e.target.files[0]) return; toast('Enviando…'); const u = await store(e.target.files[0]); if (u) { kit.cover = u; draw(); local(); toast('Capa pronta'); } };
+
+const phoInput = $('#pho');
+if (phoInput) phoInput.onchange = async e => { toast('Enviando…'); for (const f of e.target.files) { const u = await store(f); if (u) kit.photos.push(u); } thumbs(); draw(); local(); toast('Fotos prontas'); };
+
+const thumbsDiv = $('#thumbs');
+if (thumbsDiv) thumbsDiv.onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { kit.photos.splice(+i, 1); thumbs(); draw(); local(); } };
 
 async function save() {
   local();
   if (!user || !sb) { toast('Salvo no navegador. Entre com e-mail para salvar na nuvem.'); return false; }
   kit.slug = EPK.slugify(kit.slug || kit.name) || ('kit-' + user.id.slice(0, 6));
   if (RESERVED.includes(kit.slug)) { toast('Esse slug é reservado, escolha outro'); return false; }
-  $('[data-k=slug]').value = kit.slug;
+  const slugInput = $('[data-k=slug]');
+  if (slugInput) slugInput.value = kit.slug;
   const { error } = await sb.from('epks').upsert({ user_id: user.id, slug: kit.slug, data: kit, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
   if (error) { toast(error.code === '23505' ? 'Esse slug já existe, escolha outro' : error.message); return false; }
   toast('Salvo na nuvem ✓'); return true;
 }
 
-$('#save').onclick = save;
-$('#pub').onclick = async () => {
+const saveBtn = $('#save');
+if (saveBtn) saveBtn.onclick = save;
+
+const pubBtn = $('#pub');
+if (pubBtn) pubBtn.onclick = async () => {
   if (!(await save())) return;
   const l = location.origin + '/' + kit.slug;
   try { await navigator.clipboard.writeText(l); } catch (_) {}
   prompt('Link público pronto para enviar ao cliente (copiado):', l);
 };
-$('#prt').onclick = () => print();
-$('#exp').onclick = () => {
+
+const prtBtn = $('#prt');
+if (prtBtn) prtBtn.onclick = () => print();
+
+const expBtn = $('#exp');
+if (expBtn) expBtn.onclick = () => {
   const h = EPK.renderPage(kit, { slug: kit.slug, supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY });
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([h], { type: 'text/html' }));
   a.download = (EPK.slugify(kit.name) || 'press-kit') + '.html'; a.click();
 };
 
-$('#login').onclick = async () => {
+const loginBtn = $('#login');
+if (loginBtn) loginBtn.onclick = async () => {
   if (!sb) return toast('Supabase não carregou. Recarregue a página.');
   const email = $('#em').value.trim(); if (!email) return toast('Digite seu e-mail');
   const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
@@ -278,20 +324,23 @@ async function loadLeads() {
   if (!sb) return;
   const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(50);
   if (error) return;
-  $('#leads').innerHTML = data.length ? data.map(l => `<div class="lead"><b>${l.kind === 'booking' ? 'BOOKING' : 'VIP'}</b> · ${esc(l.name)} · <a style="color:#a995ff" href="mailto:${esc(l.email)}">${esc(l.email)}</a>${l.whatsapp ? ' · ' + esc(l.whatsapp) : ''}${l.event_date ? '<br>📅 ' + esc(l.event_date) : ''}${l.city ? ' · ' + esc(l.city) : ''}${l.message ? '<br>' + esc(l.message) : ''}<br><small>${new Date(l.created_at).toLocaleString('pt-BR')}</small></div>`).join('') : '<small>Nenhum pedido ainda.</small>';
+  const leadsDiv = $('#leads');
+  if (leadsDiv) leadsDiv.innerHTML = data.length ? data.map(l => `<div class="lead"><b>${l.kind === 'booking' ? 'BOOKING' : 'VIP'}</b> · ${esc(l.name)} · <a style="color:#a995ff" href="mailto:${esc(l.email)}">${esc(l.email)}</a>${l.whatsapp ? ' · ' + esc(l.whatsapp) : ''}${l.event_date ? '<br>📅 ' + esc(l.event_date) : ''}${l.city ? ' · ' + esc(l.city) : ''}${l.message ? '<br>' + esc(l.message) : ''}<br><small>${new Date(l.created_at).toLocaleString('pt-BR')}</small></div>`).join('') : '<small>Nenhum pedido ainda.</small>';
 }
 
 async function onUser(u) {
   user = u;
   if (!u || !sb) return;
-  $('#who').innerHTML = `<small>${esc(u.email)}</small> <button class="g" id="out">Sair</button>`;
-  $('#out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+  const who = $('#who');
+  if (who) who.innerHTML = `<small>${esc(u.email)}</small> <button class="g" id="out">Sair</button>`;
+  const outBtn = $('#out');
+  if (outBtn) outBtn.onclick = async () => { await sb.auth.signOut(); location.reload(); };
   const { data } = await sb.from('epks').select('data').eq('user_id', u.id).maybeSingle();
   if (data?.data) { kit = { ...DEF, ...data.data }; fill(); local(); }
   loadLeads();
 }
 
-// 3. VERIFICA SE É ROTA PÚBLICA (/slug) OU MODO EDITOR
+// ROTEAMENTO RÁPIDO
 const pathSlug = location.pathname.replace(/^\/|\/$/g, '').split('/')[0];
 const querySlug = new URLSearchParams(location.search).get('kit');
 const publicSlug = querySlug || (pathSlug && !RESERVED.includes(pathSlug) && !pathSlug.includes('.') ? pathSlug : null);
@@ -305,7 +354,8 @@ if (publicSlug) {
         document.title = (kit.name || 'Artist') + ' — Official Press Kit';
         draw();
       } else {
-        $('#pv').innerHTML = `<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px"><h2>Press Kit não encontrado</h2><p style="color:#9a9ab5">O link <b>/${esc(publicSlug)}</b> ainda não foi publicado.</p><a href="/" style="color:#7c5cff;margin-top:12px">Criar meu EPK Master →</a></div>`;
+        const pv = $('#pv');
+        if (pv) pv.innerHTML = `<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px"><h2>Press Kit não encontrado</h2><p style="color:#9a9ab5">O link <b>/${esc(publicSlug)}</b> ainda não foi publicado.</p><a href="/" style="color:#7c5cff;margin-top:12px">Criar meu EPK Master →</a></div>`;
       }
     });
   }
