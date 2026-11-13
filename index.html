@@ -4,36 +4,31 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>EPK Master</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui,sans-serif;background:#0b0b10;color:#e8e8ef}
 .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#14141c;border-bottom:1px solid #26263a;position:sticky;top:0;z-index:10}
-.top b{font-weight:800;letter-spacing:.5px;margin-right:auto}
-.top input{width:210px}
+.top b{font-weight:800;letter-spacing:.5px;margin-right:auto}.top input{width:210px}
 .app{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 54px)}
 #ed{padding:16px;border-right:1px solid #26263a;overflow:auto;max-height:calc(100vh - 54px);position:sticky;top:54px}
-#pv{overflow:auto}
 h3{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#9a9ab5;margin:22px 0 8px}
 label{display:block;font-size:12px;color:#b5b5cc;margin:10px 0 4px}
 input,textarea,select{width:100%;background:#0f0f16;border:1px solid #2c2c44;color:#fff;border-radius:8px;padding:9px 10px;font:inherit;font-size:14px}
-textarea{min-height:76px;resize:vertical}
-input[type=color]{padding:2px;height:38px}
-button,.bt{background:#7c5cff;color:#fff;border:0;border-radius:8px;padding:9px 14px;font:600 13px Inter;cursor:pointer}
-button.g{background:#26263a}
+textarea{min-height:76px;resize:vertical}input[type=color]{padding:2px;height:38px}
+button{background:#7c5cff;color:#fff;border:0;border-radius:8px;padding:9px 14px;font:600 13px Inter;cursor:pointer}button.g{background:#26263a}
 #thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
 #thumbs div{position:relative;aspect-ratio:1;background-size:cover;background-position:center;border-radius:6px}
 #thumbs span{position:absolute;top:2px;right:2px;background:#000a;border-radius:50%;width:20px;height:20px;text-align:center;line-height:20px;cursor:pointer;font-size:13px}
+.lead{background:#14141c;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px}.lead b{color:#a995ff}
 small{color:#7d7d98;font-size:11px}
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;border-radius:8px;font-weight:600;font-size:13px;opacity:0;transition:.3s;pointer-events:none}
-#toast.on{opacity:1}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:10px 16px;border-radius:8px;font-weight:600;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:99}#toast.on{opacity:1}
 @media(max-width:900px){.app{grid-template-columns:1fr}#ed{position:static;max-height:none;border:0}}
 @media print{.top,#ed,#toast{display:none!important}.app{display:block}body{background:#fff}}
 </style>
 </head>
 <body>
-<div class="top" id="top">
+<div class="top">
   <b>EPK&nbsp;MASTER</b>
   <span id="who"><input id="em" type="email" placeholder="seu e-mail para entrar"> <button class="g" id="login">Entrar</button></span>
   <button id="save">Salvar</button>
@@ -41,166 +36,112 @@ small{color:#7d7d98;font-size:11px}
   <button class="g" id="exp">Baixar HTML</button>
   <button class="g" id="prt">PDF</button>
 </div>
-<div class="app">
-<div id="ed">
-  <h3>Identidade</h3>
-  <label>Nome artístico</label><input data-k="name" placeholder="Ex.: DJ Pythagoras">
-  <label>Gênero</label><input data-k="genre" placeholder="Ex.: Tech House">
-  <label>Cidade / País</label><input data-k="city" placeholder="São Paulo, Brasil">
-  <label>Frase de impacto</label><input data-k="tagline" placeholder="Uma linha que resume você">
-  <label>Cor de destaque</label><input type="color" data-k="accent">
-  <label>Tema</label><select data-k="theme"><option value="dark">Escuro</option><option value="light">Claro</option></select>
-  <h3>Imagens</h3>
-  <label>Foto de capa (horizontal, alta resolução)</label><input type="file" id="cov" accept="image/*">
-  <label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple>
-  <div id="thumbs"></div>
-  <h3>Biografia</h3>
-  <textarea data-k="bio" style="min-height:140px" placeholder="Conte sua história em 2-4 parágrafos. Linha em branco separa parágrafos."></textarea>
-  <h3>Música</h3>
-  <label>Faixas / vídeos <small>(uma por linha: Título | link)</small></label>
-  <textarea data-k="tracks" placeholder="Minha faixa | https://open.spotify.com/track/..."></textarea>
-  <small>Spotify e YouTube viram player. Outros links viram botão.</small>
-  <h3>Destaques e imprensa</h3>
-  <label>Conquistas <small>(uma por linha)</small></label><textarea data-k="highlights" placeholder="Tocou no festival X&#10;+100 mil streams"></textarea>
-  <label>Citações <small>(Citação | Fonte)</small></label><textarea data-k="quotes" placeholder="Som único e envolvente | Revista Y"></textarea>
-  <h3>Downloads</h3>
-  <label>Arquivos <small>(Nome | link do Drive/Dropbox)</small></label><textarea data-k="files" placeholder="Rider técnico | https://...&#10;Logo (ZIP) | https://..."></textarea>
-  <h3>Contato</h3>
-  <label>E-mail de booking</label><input data-k="email" type="email">
-  <label>Telefone / WhatsApp</label><input data-k="phone">
-  <label>Redes <small>(Nome | link)</small></label><textarea data-k="socials" placeholder="Instagram | https://instagram.com/..."></textarea>
-  <label>Slug do link público</label><input data-k="slug" placeholder="meu-nome">
-  <p><small>Sem login, tudo fica salvo só neste navegador. Com login (Supabase), o kit fica na nuvem e ganha link público.</small></p>
-</div>
-<div id="pv"></div>
-</div>
+<div class="app"><div id="ed"></div><div id="pv"></div></div>
 <div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/kit.js"></script>
 <script>
-/* ====== CONFIGURAÇÃO SUPABASE (cole os seus dados; use SOMENTE a chave anon/public) ====== */
-const SUPABASE_URL = "";
-const SUPABASE_ANON_KEY = "";
-/* ======================================================================================== */
+const SUPABASE_URL = "https://kwxutgeqexqqrwhgvebh.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3eHV0Z2VxZXhxcXJ3aGd2ZWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1ODYyMTQsImV4cCI6MjExMDE2MjIxNH0.a7zCa4MKeS4lXpjdbte2PbfwN1Yl5v4T8Qql9u5Oq7o";
+const RESERVED = ['api', 'kit', 'index', 'app', 'admin'];
 
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const safe=u=>/^https?:\/\//i.test(u||'')?u:'';
-const lines=t=>(t||'').split('\n').map(s=>s.trim()).filter(Boolean);
-const pair=l=>{const i=l.indexOf('|');return i<0?[l,'']:[l.slice(0,i).trim(),l.slice(i+1).trim()]};
-const slugify=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2600)};
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2800); };
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let user = null;
 
-const sb=(SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase)?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
-let user=null;
-const DEF={name:'',genre:'',city:'',tagline:'',bio:'',accent:'#7c5cff',theme:'dark',cover:'',photos:[],tracks:'',highlights:'',quotes:'',files:'',email:'',phone:'',socials:'',slug:''};
-let kit={...DEF,...JSON.parse(localStorage.getItem('epk')||'{}')};
+const DEF = { name: '', genre: '', city: '', tagline: '', accent: '#7c5cff', theme: 'dark', lang: 'en', cover: '', photos: [], bio_en: '', bio_pt: '', tracks: '', agenda: '', rel: '', play: '', sup: '', quotes: '', files: '', email: '', phone: '', socials: '', slug: '' };
+let kit = { ...DEF, ...JSON.parse(localStorage.getItem('epk2') || '{}') };
 
-const KIT_CSS=`
-.kit{--a:#7c5cff;--bg:#0b0b10;--fg:#ececf5;--mu:#9a9ab5;--cd:#14141c;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;line-height:1.7}
-.kit.light{--bg:#fafafc;--fg:#14141c;--mu:#666680;--cd:#fff}
-.kit *{box-sizing:border-box}
-.kit .hero{min-height:78vh;display:flex;flex-direction:column;justify-content:flex-end;padding:8vw 7vw 6vw;background:linear-gradient(180deg,#0000 20%,var(--bg) 98%),var(--img,linear-gradient(135deg,var(--a),#111)) center/cover}
-.kit .chip{display:inline-block;align-self:flex-start;border:1px solid var(--a);color:var(--a);padding:4px 14px;border-radius:99px;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-bottom:16px;background:#0006}
-.kit h1{font:900 clamp(44px,9vw,120px)/.95 'Playfair Display',serif;margin:0 0 14px;letter-spacing:-1px}
-.kit .tag{font-size:clamp(16px,2vw,22px);color:var(--mu);max-width:720px;margin:0}
-.kit section{padding:56px 7vw;max-width:1200px;margin:auto}
-.kit h2{font:700 13px Inter;letter-spacing:3px;text-transform:uppercase;color:var(--a);margin:0 0 24px;display:flex;align-items:center;gap:12px}
-.kit h2:after{content:"";flex:1;height:1px;background:var(--mu);opacity:.3}
-.kit .bio p{font-size:18px;max-width:780px;margin:0 0 16px}
-.kit .gal{columns:3 220px;gap:12px}
-.kit .gal img{width:100%;margin-bottom:12px;border-radius:10px;display:block}
-.kit .trk{margin-bottom:18px}.kit iframe{width:100%;border:0;border-radius:12px}
-.kit .trk b{display:block;margin-bottom:8px}
-.kit .btn{display:inline-block;background:var(--a);color:#fff;text-decoration:none;padding:11px 20px;border-radius:99px;font-weight:600;font-size:14px;margin:0 8px 8px 0}
-.kit .btn.o{background:none;border:1px solid var(--a);color:var(--a)}
-.kit ul{padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.kit li{background:var(--cd);padding:16px 18px;border-radius:12px;border-left:3px solid var(--a)}
-.kit blockquote{margin:0 0 20px;font:italic 700 clamp(20px,3vw,32px)/1.35 'Playfair Display',serif}
-.kit blockquote cite{display:block;font:600 13px Inter;color:var(--mu);margin-top:8px;font-style:normal}
-.kit footer{text-align:center;padding:64px 7vw;background:var(--cd)}
-.kit footer h3{font:900 clamp(28px,5vw,52px) 'Playfair Display',serif;margin:0 0 20px}
-@media print{.kit .hero{min-height:auto}.kit section{break-inside:avoid}}`;
+const FIELDS = [
+ ['Identidade'], ['Nome artístico', 'name'], ['Gênero', 'genre'], ['Cidade / País', 'city'], ['Frase de impacto', 'tagline'],
+ ['Cor de destaque', 'accent', 'color'], ['Tema', 'theme', 'select', [['dark', 'Escuro'], ['light', 'Claro']]],
+ ['Idioma principal do kit', 'lang', 'select', [['en', 'English'], ['pt', 'Português']]],
+ ['Imagens'], ['__files', '__files'],
+ ['Biografia'], ['Bio em inglês (linha em branco separa parágrafos)', 'bio_en', 'area'], ['Bio em português', 'bio_pt', 'area'],
+ ['Música e agenda'], ['Faixas e vídeos (Título | link Spotify/YouTube/SoundCloud)', 'tracks', 'area'], ['Próximas datas (AAAA-MM-DD | Evento | Cidade)', 'agenda', 'area'],
+ ['Destaques'], ['Lançou em (selos, um por linha ou separados por vírgula)', 'rel', 'area'], ['Tocou em', 'play', 'area'], ['Apoiado por', 'sup', 'area'],
+ ['Citações de imprensa (Citação | Fonte)', 'quotes', 'area'],
+ ['Contato'], ['E-mail de booking', 'email', 'email'], ['WhatsApp (com DDI, ex.: 5511999999999)', 'phone'], ['Redes (Nome | link)', 'socials', 'area'],
+ ['Downloads (Nome | link do Drive)', 'files', 'area'],
+ ['Link público'], ['Slug (epk-master.vercel.app/slug)', 'slug']
+];
+$('#ed').innerHTML = FIELDS.map(([l, k, t, o]) => {
+  if (!k) return `<h3>${l}</h3>`;
+  if (k === '__files') return `<label>Foto de capa (alta resolução)</label><input type="file" id="cov" accept="image/*"><label>Fotos de imprensa (várias)</label><input type="file" id="pho" accept="image/*" multiple><div id="thumbs"></div><small>Entre com seu e-mail antes de enviar fotos, para que fiquem na nuvem.</small>`;
+  const c = t === 'area' ? `<textarea data-k="${k}"></textarea>` : t === 'select' ? `<select data-k="${k}">${o.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>` : `<input data-k="${k}" type="${t || 'text'}">`;
+  return `<label>${l}</label>${c}`;
+}).join('') + `<h3>Pedidos recebidos</h3><div id="leads"><small>Entre para ver pedidos de booking e a lista VIP.</small></div>`;
 
-function embed(u){u=safe(u);if(!u)return'';
- let m=u.match(/open\.spotify\.com\/(track|album|playlist|artist)\/(\w+)/);
- if(m)return `<iframe loading="lazy" src="https://open.spotify.com/embed/${m[1]}/${m[2]}" height="152" allow="encrypted-media"></iframe>`;
- m=u.match(/(?:youtu\.be\/|v=)([\w-]{11})/);
- if(m)return `<iframe loading="lazy" src="https://www.youtube.com/embed/${m[1]}" height="340" allowfullscreen></iframe>`;
- return `<a class="btn" href="${esc(u)}" target="_blank" rel="noopener">Ouvir ↗</a>`}
+const draw = () => { $('#pv').innerHTML = EPK.renderKit(kit); };
+const local = () => localStorage.setItem('epk2', JSON.stringify(kit));
+function thumbs() { $('#thumbs').innerHTML = (kit.photos || []).map((p, i) => `<div style="background-image:url('${esc(p)}')"><span data-i="${i}">×</span></div>`).join(''); }
+function fill() { $$('[data-k]').forEach(e => e.value = kit[e.dataset.k] ?? ''); thumbs(); draw(); }
 
-function renderKit(k){
- const cover=safe(k.cover)||/^data:image\//.test(k.cover||'')?k.cover:'';
- const tr=lines(k.tracks).map(pair), hi=lines(k.highlights), qu=lines(k.quotes).map(pair),
-       fi=lines(k.files).map(pair), so=lines(k.socials).map(pair);
- const imgs=(k.photos||[]).filter(p=>safe(p)||/^data:image\//.test(p));
- const sec=(t,b)=>b?`<section><h2>${t}</h2>${b}</section>`:'';
- return `<div class="kit ${k.theme==='light'?'light':''}" style="--a:${/^#[0-9a-f]{6}$/i.test(k.accent)?k.accent:'#7c5cff'}">
- <div class="hero" ${cover?`style="--img:url('${cover}')"`:''}>
-  ${k.genre?`<span class="chip">${esc(k.genre)}${k.city?' · '+esc(k.city):''}</span>`:''}
-  <h1>${esc(k.name)||'Seu Nome Artístico'}</h1>
-  ${k.tagline?`<p class="tag">${esc(k.tagline)}</p>`:''}
- </div>
- ${sec('Biografia',k.bio?`<div class="bio">${k.bio.split(/\n\s*\n/).map(p=>`<p>${esc(p.trim())}</p>`).join('')}</div>`:'')}
- ${sec('Música',tr.length?tr.map(([t,u])=>`<div class="trk">${t?`<b>${esc(t)}</b>`:''}${embed(u)}</div>`).join(''):'')}
- ${sec('Destaques',hi.length?`<ul>${hi.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>`:'')}
- ${sec('Imprensa',qu.length?qu.map(([q,s])=>`<blockquote>“${esc(q)}”${s?`<cite>— ${esc(s)}</cite>`:''}</blockquote>`).join(''):'')}
- ${sec('Fotos',imgs.length?`<div class="gal">${imgs.map(p=>`<a href="${esc(p)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(p)}" alt="${esc(k.name)}"></a>`).join('')}</div>`:'')}
- ${sec('Downloads',fi.length?fi.map(([n,u])=>safe(u)?`<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">⬇ ${esc(n)}</a>`:'').join(''):'')}
- ${(k.email||k.phone||so.length)?`<footer><h3>Booking &amp; Contato</h3>
-  ${k.email?`<a class="btn" href="mailto:${esc(k.email)}">${esc(k.email)}</a>`:''}
-  ${k.phone?`<a class="btn o" href="tel:${esc(k.phone.replace(/[^\d+]/g,''))}">${esc(k.phone)}</a>`:''}
-  <div style="margin-top:14px">${so.map(([n,u])=>safe(u)?`<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`:'').join('')}</div></footer>`:''}
- </div>`}
+const shrink = (f, max = 1600) => new Promise(r => { const i = new Image(); i.onload = () => { const s = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = i.width * s; c.height = i.height * s; c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); c.toBlob(r, 'image/jpeg', .85); URL.revokeObjectURL(i.src); }; i.src = URL.createObjectURL(f); });
+async function store(f) {
+  const b = await shrink(f);
+  if (user) {
+    const p = `${user.id}/${Date.now()}${Math.random().toString(36).slice(2, 6)}.jpg`;
+    const { error } = await sb.storage.from('epk-media').upload(p, b, { contentType: 'image/jpeg' });
+    if (error) { toast('Upload: ' + error.message); return null; }
+    return sb.storage.from('epk-media').getPublicUrl(p).data.publicUrl;
+  }
+  return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+}
+$('#cov').onchange = async e => { if (!e.target.files[0]) return; toast('Enviando…'); const u = await store(e.target.files[0]); if (u) { kit.cover = u; draw(); local(); toast('Capa pronta'); } };
+$('#pho').onchange = async e => { toast('Enviando…'); for (const f of e.target.files) { const u = await store(f); if (u) kit.photos.push(u); } thumbs(); draw(); local(); toast('Fotos prontas'); };
+$('#thumbs').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { kit.photos.splice(+i, 1); thumbs(); draw(); local(); } };
+$$('[data-k]').forEach(e => e.oninput = () => { kit[e.dataset.k] = e.value; draw(); local(); });
 
-const draw=()=>{$('#pv').innerHTML=renderKit(kit)};
-function thumbs(){$('#thumbs').innerHTML=(kit.photos||[]).map((p,i)=>`<div style="background-image:url('${esc(p)}')"><span data-i="${i}">×</span></div>`).join('')}
-function fill(){$$('[data-k]').forEach(e=>e.value=kit[e.dataset.k]??'');thumbs();draw()}
+async function save() {
+  local();
+  if (!user) { toast('Salvo só neste navegador. Entre com e-mail para salvar na nuvem.'); return false; }
+  kit.slug = EPK.slugify(kit.slug || kit.name) || ('kit-' + user.id.slice(0, 6));
+  if (RESERVED.includes(kit.slug)) { toast('Esse slug é reservado, escolha outro'); return false; }
+  $('[data-k=slug]').value = kit.slug;
+  const { error } = await sb.from('epks').upsert({ user_id: user.id, slug: kit.slug, data: kit, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  if (error) { toast(error.code === '23505' ? 'Esse slug já existe, escolha outro' : error.message); return false; }
+  toast('Salvo na nuvem ✓'); return true;
+}
+$('#save').onclick = save;
+$('#pub').onclick = async () => {
+  if (!(await save())) return;
+  const l = location.origin + '/' + kit.slug;
+  try { await navigator.clipboard.writeText(l); } catch (_) {}
+  prompt('Link público (copiado):', l);
+};
+$('#prt').onclick = () => print();
+$('#exp').onclick = () => {
+  const h = EPK.renderPage(kit, { slug: kit.slug, supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([h], { type: 'text/html' }));
+  a.download = (EPK.slugify(kit.name) || 'press-kit') + '.html'; a.click();
+};
 
-/* imagens: reduz para 1600px JPEG; sobe ao Supabase Storage se logado, senão guarda local */
-const shrink=(f,max=1600)=>new Promise(r=>{const i=new Image();i.onload=()=>{const s=Math.min(1,max/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);c.toBlob(r,'image/jpeg',.85);URL.revokeObjectURL(i.src)};i.src=URL.createObjectURL(f)});
-async function store(f){const b=await shrink(f);
- if(sb&&user){const p=`${user.id}/${Date.now()}${Math.random().toString(36).slice(2,6)}.jpg`;
-  const {error}=await sb.storage.from('epk-media').upload(p,b,{contentType:'image/jpeg'});
-  if(error){toast('Upload: '+error.message);return null}
-  return sb.storage.from('epk-media').getPublicUrl(p).data.publicUrl}
- return new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)})}
+$('#login').onclick = async () => {
+  const email = $('#em').value.trim(); if (!email) return toast('Digite seu e-mail');
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
+  toast(error ? error.message : 'Link enviado! Confira seu e-mail');
+};
+async function loadLeads() {
+  const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(50);
+  if (error) return;
+  $('#leads').innerHTML = data.length ? data.map(l => `<div class="lead"><b>${l.kind === 'booking' ? 'BOOKING' : 'VIP'}</b> · ${esc(l.name)} · <a style="color:#a995ff" href="mailto:${esc(l.email)}">${esc(l.email)}</a>${l.whatsapp ? ' · ' + esc(l.whatsapp) : ''}${l.event_date ? '<br>📅 ' + esc(l.event_date) : ''}${l.city ? ' · ' + esc(l.city) : ''}${l.message ? '<br>' + esc(l.message) : ''}<br><small>${new Date(l.created_at).toLocaleString('pt-BR')}</small></div>`).join('') : '<small>Nenhum pedido ainda.</small>';
+}
+async function onUser(u) {
+  user = u;
+  if (!u) return;
+  $('#who').innerHTML = `<small>${esc(u.email)}</small> <button class="g" id="out">Sair</button>`;
+  $('#out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+  const { data } = await sb.from('epks').select('data').eq('user_id', u.id).maybeSingle();
+  if (data?.data) { kit = { ...DEF, ...data.data }; fill(); local(); }
+  loadLeads();
+}
 
-$('#cov').onchange=async e=>{if(!e.target.files[0])return;toast('Enviando…');const u=await store(e.target.files[0]);if(u){kit.cover=u;draw();toast('Capa pronta')}};
-$('#pho').onchange=async e=>{toast('Enviando…');for(const f of e.target.files){const u=await store(f);if(u)kit.photos.push(u)}thumbs();draw();toast('Fotos prontas')};
-$('#thumbs').onclick=e=>{const i=e.target.dataset.i;if(i!==undefined){kit.photos.splice(+i,1);thumbs();draw()}};
-$$('[data-k]').forEach(e=>e.oninput=()=>{kit[e.dataset.k]=e.value;draw();localStorage.setItem('epk',JSON.stringify(kit))});
-
-/* salvar */
-async function save(){
- localStorage.setItem('epk',JSON.stringify(kit));
- if(!sb)return toast('Salvo neste navegador (Supabase não configurado)');
- if(!user)return toast('Salvo localmente. Entre com e-mail para salvar na nuvem');
- kit.slug=slugify(kit.slug||kit.name)||('kit-'+user.id.slice(0,6));$('[data-k=slug]').value=kit.slug;
- const {error}=await sb.from('epks').upsert({user_id:user.id,slug:kit.slug,data:kit,updated_at:new Date().toISOString()},{onConflict:'user_id'});
- toast(error?(error.code==='23505'?'Esse slug já existe, escolha outro':error.message):'Salvo na nuvem ✓')}
-$('#save').onclick=save;
-$('#pub').onclick=async()=>{await save();if(!sb||!user||!kit.slug)return;const l=location.origin+location.pathname+'#/k/'+kit.slug;try{await navigator.clipboard.writeText(l)}catch(_){}prompt('Link público (copiado):',l)};
-$('#prt').onclick=()=>print();
-$('#exp').onclick=()=>{const h=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(kit.name)} — Press Kit</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"><style>${KIT_CSS}body{margin:0}</style></head><body>${renderKit(kit)}</body></html>`;
- const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download=(slugify(kit.name)||'press-kit')+'.html';a.click()};
-
-/* login por link mágico */
-$('#login').onclick=async()=>{if(!sb)return toast('Configure o Supabase no topo do código');const email=$('#em').value.trim();if(!email)return toast('Digite seu e-mail');
- const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});toast(error?error.message:'Link enviado! Confira seu e-mail')};
-async function onUser(u){user=u;
- $('#who').innerHTML=u?`<small>${esc(u.email)}</small> <button class="g" id="out">Sair</button>`:$('#who').innerHTML;
- if(u){$('#out').onclick=async()=>{await sb.auth.signOut();location.reload()};
-  const {data}=await sb.from('epks').select('data').eq('user_id',u.id).maybeSingle();
-  if(data?.data){kit={...DEF,...data.data};fill()}}}
-
-/* boot */
-(async()=>{
- const m=location.hash.match(/^#\/k\/([\w-]+)/);
- if(m&&sb){const {data}=await sb.from('epks').select('data').eq('slug',m[1]).maybeSingle();
-  document.body.innerHTML='<style>'+KIT_CSS+'body{margin:0}</style>'+(data?renderKit(data.data)+'<p style="text-align:center;padding:20px;font:12px Inter;color:#888">Criado com EPK Master</p>':'<p style="padding:40px;font-family:Inter">Press kit não encontrado.</p>');return}
- const st=document.createElement('style');st.textContent=KIT_CSS;document.head.appendChild(st);
- fill();
- if(sb){const {data}=await sb.auth.getSession();onUser(data.session?.user||null);sb.auth.onAuthStateChange((_,s)=>{if((s?.user?.id||null)!==(user?.id||null))onUser(s?.user||null)})}
-})();
+fill();
+sb.auth.getSession().then(({ data }) => onUser(data.session?.user || null));
+sb.auth.onAuthStateChange((_, s) => { if ((s?.user?.id || null) !== (user?.id || null)) onUser(s?.user || null); });
 </script>
 </body>
 </html>
