@@ -88,8 +88,11 @@ const isoDate = s => {
   s = (s || '').trim();
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (m) return m[1] + '-' + p2(m[2]) + '-' + p2(m[3]);
-  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
-  return m ? m[3] + '-' + p2(m[2]) + '-' + p2(m[1]) : '';
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2}|\d{4}))?$/);
+  if (!m) return '';
+  const y = m[3] ? (m[3].length === 2 ? '20' + m[3] : m[3]) : String(new Date().getFullYear());
+  const r = y + '-' + p2(m[2]) + '-' + p2(m[1]);
+  return !m[3] && r < today() ? (+y + 1) + '-' + p2(m[2]) + '-' + p2(m[1]) : r;
 };
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
 
@@ -156,7 +159,7 @@ function renderKit(k) {
   const L = k.lang === 'pt' ? 'pt' : 'en', t = T[L], cover = img(k.cover);
   const tr = lines(k.tracks).map(kv), qu = lines(k.quotes).map(pair), fi = lines(k.files).map(kv), so = lines(k.socials).map(kv);
   const td = today();
-  const ev = lines(k.agenda).map(l => l.split('|').map(s => s.trim())).map(a => [isoDate(a[0]), a[1], a[2]]).filter(a => a[0] && a[0] >= td).sort((a, b) => a[0] < b[0] ? -1 : 1);
+  const ev = lines(k.agenda).map(l => l.split(/\s*[|–—]\s*|\s+-\s+/).map(s => s.trim())).map(a => [isoDate(a[0]), a[1], a[2]]).filter(a => a[0] && a[0] >= td).sort((a, b) => a[0] < b[0] ? -1 : 1);
   const imgs = (k.photos || []).filter(img);
   const sec = (h, b) => b ? `<section><h2>${h}</h2>${b}</section>` : '';
   const hl = [['rel', 'rel'], ['play', 'play'], ['sup', 'sup']].map(([f, key]) => { const a = list(k[f]); return a.length ? `<h4>${t[key]}</h4>${a.map(x => `<span>${esc(x)}</span>`).join('')}` : ''; }).join('');
@@ -230,7 +233,7 @@ const FIELDS = [
  ['Idioma principal do kit', 'lang', 'select', [['en', 'English'], ['pt', 'Português']]],
  ['Imagens'], ['__files', '__files'],
  ['Biografia'], ['Bio em inglês (linha em branco separa parágrafos)', 'bio_en', 'area'], ['Bio em português', 'bio_pt', 'area'],
- ['Música e agenda'], ['Faixas e vídeos (uma por linha: Título | link — ou só o link). Spotify, YouTube e SoundCloud viram player', 'tracks', 'area'], ['Próximas datas (DD/MM/AAAA | Evento | Cidade)', 'agenda', 'area'],
+ ['Música e agenda'], ['Faixas e vídeos (uma por linha: Título | link — ou só o link). Spotify, YouTube e SoundCloud viram player', 'tracks', 'area'], ['Próximas datas, uma por linha: 20/12/2026 | Evento | Cidade (datas passadas não aparecem)', 'agenda', 'area'],
  ['Destaques'], ['Lançou em (selos, um por linha ou separados por vírgula)', 'rel', 'area'], ['Tocou em', 'play', 'area'], ['Apoiado por', 'sup', 'area'],
  ['Citações de imprensa (Citação | Fonte)', 'quotes', 'area'],
  ['Contato'], ['E-mail de booking', 'email', 'email'], ['WhatsApp (com DDI: Brasil 55, Reino Unido 44. Ex.: 5511999999999)', 'phone'], ['Redes (uma por linha: Instagram | https://instagram.com/seuuser)', 'socials', 'area'],
