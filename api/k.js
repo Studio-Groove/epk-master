@@ -5,6 +5,7 @@ const img = u => safe(u) || (/^data:image\//.test(u || '') ? u : '');
 const cssUrl = u => "url('" + String(u).replace(/['"()\\\s<>]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')) + "')";
 const lines = t => (t || '').split('\n').map(s => s.trim()).filter(Boolean);
 const list = t => (t || '').split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+const kv = l => { if (l.includes('|')) { const i = l.indexOf('|'); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; } const m = l.match(/^(.*?)\s*(https?:\/\/\S+)\s*$/); return m ? [m[1].replace(/[\s:|\-–—]+$/, '').trim(), m[2]] : [l, '']; };
 const pair = l => { const i = l.indexOf('|'); return i < 0 ? [l, ''] : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; };
 const slugify = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const p2 = n => String(n).padStart(2, '0');
@@ -52,20 +53,33 @@ const KIT_CSS = `
 .kit form{background:var(--bg);padding:20px;border-radius:14px;border:1px solid #8883}
 .kit form h4{margin:0 0 12px;font:700 15px Inter}
 .kit input,.kit textarea{width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #8885;background:var(--cd);color:var(--fg);font:inherit;font-size:14px}
+.kit .trks{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.kit .trk{margin:0;background:var(--cd);border:1px solid #8883;border-radius:16px;padding:16px}
+.kit .trk b{font:700 14px Inter;letter-spacing:.3px;margin-bottom:10px}
+.kit .yt{position:relative;padding-top:56.25%}.kit .yt iframe{position:absolute;inset:0;height:100%}
+.kit .lnk{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:var(--fg);border:1px solid var(--a);border-radius:12px;padding:16px 18px;font-weight:700}.kit .lnk small{color:var(--a);font-weight:600;font-size:13px}
+.kit .lnk:hover{background:var(--a);color:#fff}.kit .lnk:hover small{color:#fff}
+.kit footer .btn{margin:0 6px 10px}
 @media print{.kit .hero{min-height:auto}.kit section{break-inside:avoid}.kit .forms,.kit .lang{display:none}}`;
 
+function platform(u) {
+  let h = ''; try { h = new URL(u).hostname.replace(/^www\./, ''); } catch (e) {}
+  const m = [['soundcloud', 'SoundCloud'], ['beatport', 'Beatport'], ['music.apple', 'Apple Music'], ['deezer', 'Deezer'], ['bandcamp', 'Bandcamp'], ['tidal', 'Tidal'], ['youtu', 'YouTube'], ['spotify', 'Spotify'], ['instagram', 'Instagram'], ['traxsource', 'Traxsource']].find(x => h.includes(x[0]));
+  return m ? m[1] : h;
+}
 function embed(u, t) {
   u = safe(u); if (!u) return '';
   let m = u.match(/open\.spotify\.com\/(?:intl-\w+\/)?(track|album|playlist|artist)\/(\w+)/);
-  if (m) return `<iframe loading="lazy" src="https://open.spotify.com/embed/${m[1]}/${m[2]}" height="152" allow="encrypted-media"></iframe>`;
+  if (m) return `<iframe loading="lazy" src="https://open.spotify.com/embed/${m[1]}/${m[2]}" height="${m[1] === 'track' ? 152 : 352}" allow="encrypted-media"></iframe>`;
   m = u.match(/(?:youtu\.be\/|v=)([\w-]{11})/);
-  if (m) return `<iframe loading="lazy" src="https://www.youtube.com/embed/${m[1]}" height="340" allowfullscreen></iframe>`;
-  return `<a class="btn" href="${esc(u)}" target="_blank" rel="noopener">${t.listen}</a>`;
+  if (m) return `<div class="yt"><iframe loading="lazy" src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe></div>`;
+  if (/^https?:\/\/(www\.)?soundcloud\.com\/[\w-]+/i.test(u)) return `<iframe loading="lazy" scrolling="no" src="https://w.soundcloud.com/player/?url=${encodeURIComponent(u)}&amp;color=%23ff5500&amp;auto_play=false&amp;hide_related=true&amp;show_comments=false&amp;visual=false" height="166"></iframe>`;
+  return `<a class="lnk" href="${esc(u)}" target="_blank" rel="noopener"><span>${esc(platform(u))}</span><small>${t.listen}</small></a>`;
 }
 
 function renderKit(k) {
   const L = k.lang === 'pt' ? 'pt' : 'en', t = T[L], cover = img(k.cover);
-  const tr = lines(k.tracks).map(pair), qu = lines(k.quotes).map(pair), fi = lines(k.files).map(pair), so = lines(k.socials).map(pair);
+  const tr = lines(k.tracks).map(kv), qu = lines(k.quotes).map(pair), fi = lines(k.files).map(kv), so = lines(k.socials).map(kv);
   const td = today();
   const ev = lines(k.agenda).map(l => l.split('|').map(s => s.trim())).map(a => [isoDate(a[0]), a[1], a[2]]).filter(a => a[0] && a[0] >= td).sort((a, b) => a[0] < b[0] ? -1 : 1);
   const imgs = (k.photos || []).filter(img);
@@ -73,7 +87,7 @@ function renderKit(k) {
   const hl = [['rel', 'rel'], ['play', 'play'], ['sup', 'sup']].map(([f, key]) => { const a = list(k[f]); return a.length ? `<h4>${t[key]}</h4>${a.map(x => `<span>${esc(x)}</span>`).join('')}` : ''; }).join('');
   const bl = k['bio_' + L] ? L : (k.bio_en ? 'en' : 'pt'), both = k.bio_en && k.bio_pt;
   const bio = ['en', 'pt'].map(l => k['bio_' + l] ? `<div class="bio" data-l="${l}">${k['bio_' + l].split(/\n\s*\n/).map(p => `<p>${esc(p.trim())}</p>`).join('')}</div>` : '').join('');
-  const wa = (k.phone || '').replace(/\D/g, '');
+  const wa0 = (k.phone || '').replace(/\D/g, ''), wa = /^\d{10,11}$/.test(wa0) ? '55' + wa0 : wa0;
   const field = (n, ph, type = 'text', req = '') => `<input name="${n}" type="${type}" placeholder="${ph}" ${req}>`;
   const hp = '<input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">';
   return `<div class="kit ${k.theme === 'light' ? 'light' : ''}" data-lang="${bl}" style="--a:${/^#[0-9a-f]{6}$/i.test(k.accent) ? k.accent : '#7c5cff'}">
@@ -83,7 +97,7 @@ ${k.genre ? `<span class="chip">${esc(k.genre)}${k.city ? ' · ' + esc(k.city) :
 ${sec(t.bio, bio ? `${both ? `<div class="lang"><button onclick="this.closest('.kit').dataset.lang='en'">EN</button><button onclick="this.closest('.kit').dataset.lang='pt'">PT</button></div>` : ''}${bio}` : '')}
 ${sec(t.hi, hl ? `<div class="hl">${hl}</div>` : '')}
 ${sec(t.dates, ev.length ? ev.map(a => `<div class="ev"><b>${esc(a[0].split('-').reverse().join('/'))}</b><div>${esc(a[1] || '')}</div><span>${esc(a[2] || '')}</span></div>`).join('') : '')}
-${sec(t.music, tr.length ? tr.map(([n, u]) => `<div class="trk">${n ? `<b>${esc(n)}</b>` : ''}${embed(u, t)}</div>`).join('') : '')}
+${sec(t.music, tr.length ? '<div class="trks">' + tr.map(([n, u]) => `<div class="trk">${n ? `<b>${esc(n)}</b>` : ''}${embed(u, t)}</div>`).join('') + '</div>' : '')}
 ${sec(t.press, qu.length ? qu.map(([q, s]) => `<blockquote>“${esc(q)}”${s ? `<cite>— ${esc(s)}</cite>` : ''}</blockquote>`).join('') : '')}
 ${sec(t.photos, imgs.length ? `<div class="gal">${imgs.map(p => `<a href="${esc(p)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(p)}" alt="${esc(k.name)}"></a>`).join('')}</div>` : '')}
 ${sec(t.dl, fi.length ? fi.map(([n, u]) => safe(u) ? `<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">⬇ ${esc(n)}</a>` : '').join('') : '')}
