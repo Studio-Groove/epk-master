@@ -1,11 +1,21 @@
-(function () {
+const EPK = (() => {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const safe = u => /^https?:\/\//i.test(u || '') ? u : '';
 const img = u => safe(u) || (/^data:image\//.test(u || '') ? u : '');
+const cssUrl = u => "url('" + String(u).replace(/['"()\\\s<>]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')) + "')";
 const lines = t => (t || '').split('\n').map(s => s.trim()).filter(Boolean);
 const list = t => (t || '').split(/[\n,]/).map(s => s.trim()).filter(Boolean);
 const pair = l => { const i = l.indexOf('|'); return i < 0 ? [l, ''] : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; };
 const slugify = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const p2 = n => String(n).padStart(2, '0');
+const isoDate = s => {
+  s = (s || '').trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return m[1] + '-' + p2(m[2]) + '-' + p2(m[3]);
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  return m ? m[3] + '-' + p2(m[2]) + '-' + p2(m[1]) : '';
+};
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
 
 const T = {
   en: { bio: 'Biography', music: 'Music', dates: 'Upcoming dates', hi: 'Highlights', rel: 'Released on', play: 'Played at', sup: 'Supported by', press: 'Press', photos: 'Photos', dl: 'Downloads', contact: 'Booking & Contact', book: 'Booking request', vip: 'Join my VIP list', name: 'Name', email: 'E-mail', wa: 'WhatsApp', date: 'Event date', city: 'City / Venue', msg: 'Message', send: 'Send', ok: 'Thank you! We will be in touch.', err: 'Something went wrong. Please try again.', listen: 'Listen ↗' },
@@ -55,9 +65,9 @@ function embed(u, t) {
 
 function renderKit(k) {
   const L = k.lang === 'pt' ? 'pt' : 'en', t = T[L], cover = img(k.cover);
-  const today = new Date().toISOString().slice(0, 10);
   const tr = lines(k.tracks).map(pair), qu = lines(k.quotes).map(pair), fi = lines(k.files).map(pair), so = lines(k.socials).map(pair);
-  const ev = lines(k.agenda).map(l => l.split('|').map(s => s.trim())).filter(a => a[0] >= today).sort((a, b) => a[0] < b[0] ? -1 : 1);
+  const td = today();
+  const ev = lines(k.agenda).map(l => l.split('|').map(s => s.trim())).map(a => [isoDate(a[0]), a[1], a[2]]).filter(a => a[0] && a[0] >= td).sort((a, b) => a[0] < b[0] ? -1 : 1);
   const imgs = (k.photos || []).filter(img);
   const sec = (h, b) => b ? `<section><h2>${h}</h2>${b}</section>` : '';
   const hl = [['rel', 'rel'], ['play', 'play'], ['sup', 'sup']].map(([f, key]) => { const a = list(k[f]); return a.length ? `<h4>${t[key]}</h4>${a.map(x => `<span>${esc(x)}</span>`).join('')}` : ''; }).join('');
@@ -65,8 +75,9 @@ function renderKit(k) {
   const bio = ['en', 'pt'].map(l => k['bio_' + l] ? `<div class="bio" data-l="${l}">${k['bio_' + l].split(/\n\s*\n/).map(p => `<p>${esc(p.trim())}</p>`).join('')}</div>` : '').join('');
   const wa = (k.phone || '').replace(/\D/g, '');
   const field = (n, ph, type = 'text', req = '') => `<input name="${n}" type="${type}" placeholder="${ph}" ${req}>`;
+  const hp = '<input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">';
   return `<div class="kit ${k.theme === 'light' ? 'light' : ''}" data-lang="${bl}" style="--a:${/^#[0-9a-f]{6}$/i.test(k.accent) ? k.accent : '#7c5cff'}">
-<div class="hero" ${cover ? `style="--img:url('${cover}')"` : ''}>
+<div class="hero" ${cover ? `style="--img:${cssUrl(cover)}"` : ''}>
 ${k.genre ? `<span class="chip">${esc(k.genre)}${k.city ? ' · ' + esc(k.city) : ''}</span>` : ''}
 <h1>${esc(k.name) || 'Artist Name'}</h1>${k.tagline ? `<p class="tag">${esc(k.tagline)}</p>` : ''}</div>
 ${sec(t.bio, bio ? `${both ? `<div class="lang"><button onclick="this.closest('.kit').dataset.lang='en'">EN</button><button onclick="this.closest('.kit').dataset.lang='pt'">PT</button></div>` : ''}${bio}` : '')}
@@ -81,8 +92,8 @@ ${k.email ? `<a class="btn" href="mailto:${esc(k.email)}">${esc(k.email)}</a>` :
 ${wa ? `<a class="btn o" href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
 <div>${so.map(([n, u]) => safe(u) ? `<a class="btn o" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>` : '').join('')}</div>
 <div class="forms">
-<form data-kind="booking" onsubmit="return false"><h4>${t.book}</h4>${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}${field('event_date', t.date, 'date')}${field('city', t.city)}<textarea name="message" rows="3" placeholder="${t.msg}"></textarea><button class="btn">${t.send}</button></form>
-<form data-kind="vip" onsubmit="return false"><h4>${t.vip}</h4>${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}<button class="btn">${t.send}</button></form>
+<form data-kind="booking" onsubmit="return false"><h4>${t.book}</h4>${hp}${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}${field('event_date', t.date, 'date')}${field('city', t.city)}<textarea name="message" rows="3" placeholder="${t.msg}"></textarea><button class="btn">${t.send}</button></form>
+<form data-kind="vip" onsubmit="return false"><h4>${t.vip}</h4>${hp}${field('name', t.name, 'text', 'required')}${field('email', t.email, 'email', 'required')}${field('whatsapp', t.wa)}<button class="btn">${t.send}</button></form>
 </div></footer></div>`;
 }
 
@@ -92,11 +103,41 @@ function renderPage(k, o) {
   const cfg = JSON.stringify({ s: o.slug || k.slug || '', u: o.supabaseUrl || '', k: o.supabaseKey || '', ok: t.ok, err: t.err }).replace(/</g, '\\u003c');
   return `<!DOCTYPE html><html lang="${k.lang === 'pt' ? 'pt-BR' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="description" content="${d}"><meta property="og:title" content="${title}"><meta property="og:description" content="${d}"><meta property="og:type" content="website">${o.url ? `<meta property="og:url" content="${esc(o.url)}">` : ''}${cv ? `<meta property="og:image" content="${esc(cv)}">` : ''}<meta name="twitter:card" content="summary_large_image"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"><style>${KIT_CSS}body{margin:0}</style></head><body>${renderKit(k)}<script>
 const C=${cfg};
-document.querySelectorAll('form[data-kind]').forEach(f=>f.onsubmit=async e=>{e.preventDefault();const b=Object.fromEntries(new FormData(f));b.slug=C.s;b.kind=f.dataset.kind;if(!b.event_date)delete b.event_date;
+document.querySelectorAll('form[data-kind]').forEach(f=>f.onsubmit=async e=>{e.preventDefault();const b=Object.fromEntries(new FormData(f));if(b.website){f.innerHTML='<p>'+C.ok+'</p>';return}delete b.website;b.slug=C.s;b.kind=f.dataset.kind;if(!b.event_date)delete b.event_date;
 try{const r=await fetch(C.u+'/rest/v1/leads',{method:'POST',headers:{apikey:C.k,Authorization:'Bearer '+C.k,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(b)});f.innerHTML='<p>'+(r.ok?C.ok:C.err)+'</p>'}catch(_){f.innerHTML='<p>'+C.err+'</p>'}});
-</script></body></html>`;
+<\/script></body></html>`;
 }
 
-const api = { renderKit, renderPage, KIT_CSS, slugify };
-if (typeof module !== 'undefined') module.exports = api; else window.EPK = api;
+return { renderKit, renderPage, KIT_CSS, slugify, cssUrl, esc };
 })();
+
+const SUPABASE_URL = 'https://kwxutgeqexqqrwhgvebh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3eHV0Z2VxZXhxcXJ3aGd2ZWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1ODYyMTQsImV4cCI6MjExMDE2MjIxNH0.a7zCa4MKeS4lXpjdbte2PbfwN1Yl5v4T8Qql9u5Oq7o';
+
+module.exports = async (req, res) => {
+  const slug = String(req.query.slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  try {
+    const r = slug ? await fetch(`${SUPABASE_URL}/rest/v1/epks?slug=eq.${encodeURIComponent(slug)}&select=data`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
+    }) : null;
+    const rows = r && r.ok ? await r.json() : [];
+    if (!rows[0]) {
+      res.statusCode = 404;
+      return res.end('<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:sans-serif;padding:40px"><h1>Press kit não encontrado</h1>');
+    }
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    res.statusCode = 200;
+    res.end(EPK.renderPage(rows[0].data, {
+      slug,
+      url: `https://${host}/${slug}`,
+      supabaseUrl: SUPABASE_URL,
+      supabaseKey: SUPABASE_KEY
+    }));
+  } catch (e) {
+    res.statusCode = 500;
+    res.end('Erro ao carregar o press kit.');
+  }
+};
